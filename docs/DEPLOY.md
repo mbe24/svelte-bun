@@ -80,6 +80,8 @@ After creating the project, you must enable Node.js compatibility to avoid deplo
 4. Find **Compatibility flags**
 5. Click **Configure Workers compatibility flag**
 6. Add the flag: `nodejs_compat`
+   - If you see multiple variants (e.g., with "populate process env" or "do not populate process env" suffixes), choose the standard `nodejs_compat` or `nodejs_compat` with "populate process env"
+   - Do NOT use the "compat" flag (that's different)
 7. Click **Save**
 
 This enables Node.js built-in modules (`fs`, `path`, `crypto`, etc.) required by the application dependencies. Without this flag, the deployment will fail during the bundling phase.
