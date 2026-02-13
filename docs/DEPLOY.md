@@ -61,7 +61,7 @@ Alternatively:
 
 The project is now created and ready to receive deployments from GitHub Actions.
 
-**Note**: The project name in Step 7 must exactly match the `--project-name` value in `.github/workflows/deploy.yml`. If you want to use a different name, update both locations.
+**Note**: The project name you enter (in instruction 7 above) must exactly match the `--project-name` value in `.github/workflows/deploy.yml`. If you want to use a different name, update both locations.
 
 ### Step 4: Create a Cloudflare API Token
 
