@@ -41,7 +41,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .svelte-kit/cloudflare --project-name=svelte-bun
+          command: pages deploy .svelte-kit/cloudflare --project-name=svelte-bun --no-bundle
 
   deploy-preview:
     name: Deploy Preview
@@ -76,4 +76,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .svelte-kit/cloudflare --project-name=svelte-bun --branch=${{ github.head_ref }}
+          command: pages deploy .svelte-kit/cloudflare --project-name=svelte-bun --branch=${{ github.head_ref }} --no-bundle

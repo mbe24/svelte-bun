@@ -70,6 +70,20 @@ The project is now created and ready to receive deployments from GitHub Actions.
 
 **Note**: The project name you enter (in instruction 7 above) must exactly match the `--project-name` value in `.github/workflows/deploy.yml`. If you want to use a different name, update both locations.
 
+### Step 3b: Configure Node.js Compatibility (Important!)
+
+After creating the project, you must enable Node.js compatibility to avoid deployment errors:
+
+1. In the Cloudflare Dashboard, go to your project (`svelte-bun`)
+2. Click on **Settings** tab
+3. Scroll down to **Functions** section
+4. Find **Compatibility flags**
+5. Click **Configure Workers compatibility flag**
+6. Add the flag: `nodejs_compat`
+7. Click **Save**
+
+This enables Node.js built-in modules (`fs`, `path`, `crypto`, etc.) required by the application dependencies. Without this flag, the deployment will fail during the bundling phase.
+
 ### Step 4: Create a Cloudflare API Token
 
 You need to create an API token with the correct permissions to deploy to Cloudflare Pages.
