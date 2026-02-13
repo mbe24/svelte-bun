@@ -15,8 +15,15 @@ The deployment uses:
 - **@sveltejs/adapter-cloudflare**: SvelteKit adapter that builds the app for Cloudflare Pages
 - **Cloudflare Wrangler**: CLI tool for deploying to Cloudflare Pages
 - **GitHub Actions**: Automation platform that runs the deployment workflows
+- **wrangler.toml**: Configuration file with Node.js compatibility flags for the Cloudflare Workers runtime
 
 When the build completes, the adapter generates a worker script and static assets in `.svelte-kit/cloudflare/`, which is then deployed to Cloudflare Pages.
+
+### Node.js Compatibility
+
+The project includes a `wrangler.toml` file that enables the `nodejs_compat` compatibility flag. This is required because the application uses Node.js built-in modules (like `fs`, `path`, `crypto`, etc.) through dependencies. Without this flag, the deployment would fail during the bundling phase.
+
+The GitHub Actions workflow automatically copies `wrangler.toml` to the deployment directory before deploying to ensure these compatibility flags are applied.
 
 ## Setting Up Cloudflare Pages Deployment
 
@@ -247,6 +254,37 @@ To use a custom domain with your Cloudflare Pages deployment:
 - Ensure all dependencies are correctly specified in `package.json`
 - Test the build locally with `npm run build` to identify issues
 - Verify that the project builds successfully on the CI workflow (`.github/workflows/ci.yml`)
+
+### Node.js Built-in Module Errors During Deployment
+
+**Error**: `Could not resolve "fs"`, `Could not resolve "path"`, or similar errors for Node.js built-in modules during Wrangler bundling
+
+**Example**:
+```
+✘ [ERROR] Could not resolve "fs"
+The package "fs" wasn't found on the file system but is built into node.
+- Add the "nodejs_compat" compatibility flag to your project.
+```
+
+**Cause**: The application or its dependencies use Node.js built-in modules that are not available by default in the Cloudflare Workers runtime.
+
+**Solution**:
+This should be automatically handled by the `wrangler.toml` file in the repository. If you still encounter this error:
+
+1. Verify `wrangler.toml` exists in the root directory with:
+   ```toml
+   name = "svelte-bun"
+   compatibility_flags = ["nodejs_compat"]
+   compatibility_date = "2024-01-01"
+   ```
+
+2. Ensure the GitHub Actions workflow includes the step to copy `wrangler.toml`:
+   ```yaml
+   - name: Copy wrangler.toml to deployment directory
+     run: cp wrangler.toml .svelte-kit/cloudflare/
+   ```
+
+3. If issues persist, check if your code directly uses Node.js APIs that are not supported even with `nodejs_compat`. Consider using edge-compatible alternatives.
 
 ### Deployment Works but Site Doesn't Load
 
