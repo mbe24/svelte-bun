@@ -271,6 +271,11 @@ bun run test:e2e
 - Session expiration (7 days)
 - SQL injection protection (Drizzle ORM)
 - CSRF protection (SvelteKit built-in)
+- Environment variable-based configuration (no hardcoded credentials)
+
+For detailed information about security configuration:
+- **Local Development & Docker**: See [docs/SECURITY.md](docs/SECURITY.md)
+- **GitHub Actions CI/CD**: See [docs/GITHUB_SECRETS.md](docs/GITHUB_SECRETS.md)
 
 ## Troubleshooting
 
