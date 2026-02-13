@@ -24,7 +24,6 @@ When the build completes, the adapter generates a worker script and static asset
 
 1. A Cloudflare account (free tier is sufficient)
 2. Admin access to the GitHub repository
-3. A Cloudflare Pages project (will be created if it doesn't exist)
 
 ### Step 1: Create a Cloudflare Account
 
@@ -47,7 +46,24 @@ Alternatively:
 2. Scroll down on the Overview page
 3. On the right sidebar, under **API**, you'll find your **Account ID**
 
-### Step 3: Create a Cloudflare API Token
+### Step 3: Create a Cloudflare Pages Project
+
+**Important**: You must create the Cloudflare Pages project before the GitHub Actions workflow can deploy to it.
+
+1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Click on **Workers & Pages** in the left sidebar
+3. Click **Create application**
+4. Select the **Pages** tab
+5. Click **Connect to Git** or **Direct Upload** (we'll use Direct Upload for Wrangler-based deployments)
+6. Choose **Direct Upload**
+7. Enter your project name: `svelte-bun` (this must match the `--project-name` in the workflow file)
+8. Click **Create project**
+
+The project is now created and ready to receive deployments from GitHub Actions.
+
+**Note**: The project name in Step 7 must exactly match the `--project-name` value in `.github/workflows/deploy.yml`. If you want to use a different name, update both locations.
+
+### Step 4: Create a Cloudflare API Token
 
 You need to create an API token with the correct permissions to deploy to Cloudflare Pages.
 
@@ -65,7 +81,7 @@ You need to create an API token with the correct permissions to deploy to Cloudf
 8. **Important**: Copy the token immediately - you won't be able to see it again!
    - The token looks like: `abcdef123456_EXAMPLE_TOKEN_789xyz`
 
-### Step 4: Configure GitHub Secrets
+### Step 5: Configure GitHub Secrets
 
 Now you need to add the Cloudflare credentials to your GitHub repository as secrets.
 
@@ -77,7 +93,7 @@ Now you need to add the Cloudflare credentials to your GitHub repository as secr
 
 #### Secret 1: CLOUDFLARE_API_TOKEN
 - **Name**: `CLOUDFLARE_API_TOKEN`
-- **Value**: Paste the API token you copied in Step 3
+- **Value**: Paste the API token you copied in Step 4
 - Click **Add secret**
 
 #### Secret 2: CLOUDFLARE_ACCOUNT_ID
@@ -85,7 +101,7 @@ Now you need to add the Cloudflare credentials to your GitHub repository as secr
 - **Value**: Paste the Account ID you copied in Step 2
 - Click **Add secret**
 
-### Step 5: Verify the Setup
+### Step 6: Verify the Setup
 
 After adding both secrets:
 
@@ -184,6 +200,24 @@ To use a custom domain with your Cloudflare Pages deployment:
 8. Wait for DNS propagation (usually a few minutes)
 
 ## Troubleshooting
+
+### Project Not Found Error (Code 8000007)
+
+**Error**: `Project not found. The specified project name does not match any of your existing projects. [code: 8000007]`
+
+**Cause**: The Cloudflare Pages project doesn't exist yet in your Cloudflare account.
+
+**Solution**:
+1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Click on **Workers & Pages** in the left sidebar
+3. Click **Create application**
+4. Select the **Pages** tab
+5. Click **Direct Upload**
+6. Enter project name: `svelte-bun` (must match `--project-name` in `.github/workflows/deploy.yml`)
+7. Click **Create project**
+8. Re-run the failed GitHub Actions workflow
+
+**Important**: The project must be created manually in Cloudflare Dashboard before the first deployment. Wrangler cannot automatically create projects via the API.
 
 ### Deployment Fails with Authentication Error
 
