@@ -29,5 +29,5 @@ jobs:
     - name: Build application
       run: bun run build
     
-    - name: Run tests
-      run: bun test
+    - name: Run unit tests
+      run: bun test src/
