@@ -1,8 +1,22 @@
 # svelte-bun
 
 [![CI](https://github.com/mbe24/svelte-bun/actions/workflows/ci.yml/badge.svg)](https://github.com/mbe24/svelte-bun/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A full-stack web application built with SvelteKit and Bun, featuring user authentication and a simple counter functionality.
+
+## What is this?
+
+**svelte-bun** is a modern full-stack web application that demonstrates best practices for building web apps with cutting-edge technologies. It showcases:
+
+- **Fast Development**: Uses Bun as both runtime and package manager for blazing-fast performance
+- **Type-Safe**: Full TypeScript support throughout the stack
+- **Modern Framework**: Built with SvelteKit, providing excellent developer experience and performance
+- **Database Integration**: PostgreSQL with Drizzle ORM for type-safe database operations
+- **Authentication**: Secure user authentication with bcrypt password hashing and session management
+- **Production Ready**: Includes Docker deployment configuration and comprehensive testing
+
+This project serves as a reference implementation for building modern web applications and can be used as a starting point for new projects.
 
 ## Tech Stack
 
@@ -25,6 +39,27 @@ A full-stack web application built with SvelteKit and Bun, featuring user authen
 - Session-based authentication
 - PostgreSQL database with Drizzle ORM
 - Docker deployment with docker-compose
+
+## Screenshots
+
+### Home Page
+![Home Page](docs/images/home.png)
+*Welcome page with login and registration options*
+
+### Registration Page
+![Registration Page](docs/images/register.png)
+*User registration form with password confirmation*
+
+### Login Page
+![Login Page](docs/images/login.png)
+*User login form*
+
+### Counter Page (Protected)
+![Counter Page](docs/images/counter.png)
+*Protected counter page with increment/decrement functionality - only accessible to authenticated users*
+
+![Counter with Value](docs/images/counter-incremented.png)
+*Counter after incrementing the value*
 
 ## Prerequisites
 
@@ -208,6 +243,34 @@ bun run test:e2e
 - Session expiration (7 days)
 - SQL injection protection (Drizzle ORM)
 - CSRF protection (SvelteKit built-in)
+
+## Troubleshooting
+
+### Database Connection Issues
+- Ensure PostgreSQL is running and accessible
+- Verify `DATABASE_URL` in your `.env` file is correct
+- Check that the database `sveltekit_db` exists
+
+### Port Already in Use
+- If port 5173 (dev) or 3000 (production) is already in use, you can modify the port in `vite.config.ts` or use the `--port` flag:
+  ```bash
+  bun run dev -- --port 3001
+  ```
+
+### Docker Issues
+- If Docker build fails, ensure you have a stable internet connection for package installation
+- Try cleaning Docker cache: `docker system prune -a`
+- Make sure Docker has enough resources allocated (memory/disk space)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
