@@ -14,7 +14,8 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",
 		"db:studio": "drizzle-kit studio",
-		"test": "bun test"
+		"test": "bun test",
+		"test:e2e": "playwright test"
 	},
 	"dependencies": {
 		"@types/bcrypt": "^5.0.2",

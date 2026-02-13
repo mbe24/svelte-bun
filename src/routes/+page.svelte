@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	let loading = true;
+	let loading = $state(true);
 
 	onMount(async () => {
 		try {

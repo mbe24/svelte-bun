@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 
-	let username = '';
-	let password = '';
-	let confirmPassword = '';
-	let error = '';
-	let loading = false;
+	let username = $state('');
+	let password = $state('');
+	let confirmPassword = $state('');
+	let error = $state('');
+	let loading = $state(false);
 
 	async function handleSubmit() {
 		error = '';
@@ -49,7 +49,7 @@
 		<h1>Register</h1>
 		<p class="subtitle">Create a new account</p>
 
-		<form on:submit|preventDefault={handleSubmit}>
+		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
 			<div class="form-group">
 				<label for="username">Username</label>
 				<input

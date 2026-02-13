@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	let counter = 0;
-	let loading = true;
-	let updating = false;
+	let counter = $state(0);
+	let loading = $state(true);
+	let updating = $state(false);
 
 	onMount(async () => {
 		await loadCounter();
@@ -63,7 +63,7 @@
 <div class="container">
 	<div class="header">
 		<h1>Counter App</h1>
-		<button class="logout-button" on:click={handleLogout}>Logout</button>
+		<button class="logout-button" onclick={handleLogout}>Logout</button>
 	</div>
 
 	{#if loading}
@@ -75,14 +75,14 @@
 			<div class="button-group">
 				<button
 					class="counter-button decrement"
-					on:click={() => updateCounter('decrement')}
+					onclick={() => updateCounter('decrement')}
 					disabled={updating}
 				>
 					−
 				</button>
 				<button
 					class="counter-button increment"
-					on:click={() => updateCounter('increment')}
+					onclick={() => updateCounter('increment')}
 					disabled={updating}
 				>
 					+
