@@ -86,17 +86,24 @@ npm install
 
 ### 3. Set up environment variables
 
-Copy the example environment file:
+Copy the example environment file and configure your credentials:
 
 ```bash
 cp .env.example .env
 ```
 
-Update the `DATABASE_URL` in `.env` if needed:
+Edit the `.env` file and update the credentials (use secure passwords in production):
 
 ```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sveltekit_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password_here
+POSTGRES_DB=sveltekit_db
+DATABASE_URL=postgresql://postgres:your_secure_password_here@localhost:5432/sveltekit_db
 ```
+
+⚠️ **Security Note:** Never commit the `.env` file to version control. It contains sensitive credentials and is already excluded via `.gitignore`.
+
+For more details on security configuration, see [docs/SECURITY.md](docs/SECURITY.md).
 
 ### 4. Set up the database
 
@@ -135,6 +142,25 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ### Using Docker Compose (Recommended)
 
+**Important:** Before running Docker Compose, create a `.env` file with your credentials:
+
+```bash
+cp .env.example .env
+# Edit .env with your actual credentials
+```
+
+Make sure your `.env` file includes:
+```
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password_here
+POSTGRES_DB=sveltekit_db
+DATABASE_URL=postgresql://postgres:your_secure_password_here@db:5432/sveltekit_db
+```
+
+Note: Use `@db:5432` (not `@localhost:5432`) in `DATABASE_URL` for Docker Compose.
+
+Then start the services:
+
 ```bash
 # Build and start all services
 docker-compose up -d
@@ -148,15 +174,17 @@ docker-compose down
 
 The application will be available at [http://localhost:3000](http://localhost:3000).
 
+For more details on security configuration, see [docs/SECURITY.md](docs/SECURITY.md).
+
 ### Building Docker Image Manually
 
 ```bash
 # Build the image
 docker build -t svelte-bun-app .
 
-# Run the container
+# Run the container (replace with your actual credentials)
 docker run -p 3000:3000 \
-  -e DATABASE_URL=postgresql://postgres:postgres@host:5432/sveltekit_db \
+  -e DATABASE_URL=postgresql://username:password@host:5432/sveltekit_db \
   svelte-bun-app
 ```
 
@@ -243,6 +271,11 @@ bun run test:e2e
 - Session expiration (7 days)
 - SQL injection protection (Drizzle ORM)
 - CSRF protection (SvelteKit built-in)
+- Environment variable-based configuration (no hardcoded credentials)
+
+For detailed information about security configuration:
+- **Local Development & Docker**: See [docs/SECURITY.md](docs/SECURITY.md)
+- **GitHub Actions CI/CD**: See [docs/GITHUB_SECRETS.md](docs/GITHUB_SECRETS.md)
 
 ## Troubleshooting
 
