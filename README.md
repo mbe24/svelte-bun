@@ -43,22 +43,22 @@ This project serves as a reference implementation for building modern web applic
 ## Screenshots
 
 ### Home Page
-![Home Page](screenshots/home.png)
+![Home Page](docs/images/home.png)
 *Welcome page with login and registration options*
 
 ### Registration Page
-![Registration Page](screenshots/register.png)
+![Registration Page](docs/images/register.png)
 *User registration form with password confirmation*
 
 ### Login Page
-![Login Page](screenshots/login.png)
+![Login Page](docs/images/login.png)
 *User login form*
 
 ### Counter Page (Protected)
-![Counter Page](screenshots/counter.png)
+![Counter Page](docs/images/counter.png)
 *Protected counter page with increment/decrement functionality - only accessible to authenticated users*
 
-![Counter with Value](screenshots/counter-incremented.png)
+![Counter with Value](docs/images/counter-incremented.png)
 *Counter after incrementing the value*
 
 ## Prerequisites
