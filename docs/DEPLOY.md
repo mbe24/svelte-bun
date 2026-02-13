@@ -21,9 +21,9 @@ When the build completes, the adapter generates a worker script and static asset
 
 ### Node.js Compatibility
 
-The project includes a `wrangler.toml` file that enables the `nodejs_compat` compatibility flag. This is required because the application uses Node.js built-in modules (like `fs`, `path`, `crypto`, etc.) through dependencies. Without this flag, the deployment would fail during the bundling phase.
+The application requires Node.js built-in modules (like `fs`, `path`, `crypto`, etc.) through dependencies. To support these modules in the Cloudflare Workers runtime, the `nodejs_compat` compatibility flag must be enabled in your Cloudflare Pages project settings (see Step 3b below).
 
-The GitHub Actions workflow automatically copies `wrangler.toml` to the deployment directory before deploying to ensure these compatibility flags are applied.
+The project includes a `wrangler.toml` file for reference, and the GitHub Actions workflow copies it to the deployment directory, but the compatibility flags are ultimately controlled by your project settings in the Cloudflare Dashboard.
 
 ## Setting Up Cloudflare Pages Deployment
 
