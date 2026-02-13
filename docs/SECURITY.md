@@ -23,7 +23,7 @@ This document explains how to properly configure environment variables and secre
 
 ### Docker Deployment
 
-When using Docker Compose, create a `.env` file in the same directory as `docker-compose.yml`:
+Docker Compose is configured with fallback defaults (`postgres`/`postgres`) for quick testing, but you should create a `.env` file with secure credentials for any real use:
 
 ```bash
 # .env file for Docker Compose
@@ -35,12 +35,14 @@ DATABASE_URL=postgresql://postgres:your_secure_password_here@db:5432/sveltekit_d
 
 Note: The host in `DATABASE_URL` should be `db` (the service name in docker-compose.yml) instead of `localhost`.
 
+⚠️ **Important:** While Docker Compose will work without a `.env` file using default credentials, this is only suitable for local testing. Always use a `.env` file with secure credentials for any deployment or shared environment.
+
 Then run:
 ```bash
 docker-compose up -d
 ```
 
-Docker Compose will automatically load environment variables from the `.env` file.
+Docker Compose will automatically load environment variables from the `.env` file if present.
 
 ## GitHub Actions Secrets
 
