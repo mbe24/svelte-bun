@@ -1,5 +1,7 @@
 # svelte-bun
 
+[![CI](https://github.com/mbe24/svelte-bun/actions/workflows/ci.yml/badge.svg)](https://github.com/mbe24/svelte-bun/actions/workflows/ci.yml)
+
 A full-stack web application built with SvelteKit and Bun, featuring user authentication and a simple counter functionality.
 
 ## Tech Stack
@@ -209,5 +211,5 @@ bun run test:e2e
 
 ## License
 
-MIT
+Apache License 2.0
 
