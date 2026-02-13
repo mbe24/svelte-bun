@@ -1,0 +1,297 @@
+# Cloudflare Pages Deployment Guide
+
+This guide explains how to deploy the svelte-bun application to Cloudflare Pages using GitHub Actions.
+
+## Overview
+
+The project is configured with automated deployment workflows that handle both production and preview deployments:
+
+- **Production Deployments**: Automatically deploy to production when code is pushed to the `main` branch
+- **Preview Deployments**: Automatically create preview deployments for pull requests
+
+## Architecture
+
+The deployment uses:
+- **@sveltejs/adapter-cloudflare**: SvelteKit adapter that builds the app for Cloudflare Pages
+- **Cloudflare Wrangler**: CLI tool for deploying to Cloudflare Pages
+- **GitHub Actions**: Automation platform that runs the deployment workflows
+
+When the build completes, the adapter generates a worker script and static assets in `.svelte-kit/cloudflare/`, which is then deployed to Cloudflare Pages.
+
+## Setting Up Cloudflare Pages Deployment
+
+### Prerequisites
+
+1. A Cloudflare account (free tier is sufficient)
+2. Admin access to the GitHub repository
+3. A Cloudflare Pages project (will be created if it doesn't exist)
+
+### Step 1: Create a Cloudflare Account
+
+If you don't have a Cloudflare account:
+
+1. Go to [https://dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up)
+2. Sign up with your email address
+3. Verify your email address
+4. Log in to the Cloudflare dashboard
+
+### Step 2: Obtain Cloudflare Account ID
+
+1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Click on **Workers & Pages** in the left sidebar
+3. On the right side of the page, you'll see your **Account ID**
+4. Copy this Account ID (it looks like: `a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6`)
+
+Alternatively:
+1. Click on any domain in your Cloudflare account
+2. Scroll down on the Overview page
+3. On the right sidebar, under **API**, you'll find your **Account ID**
+
+### Step 3: Create a Cloudflare API Token
+
+You need to create an API token with the correct permissions to deploy to Cloudflare Pages.
+
+1. Go to [https://dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. Click **Create Token**
+3. Click **Use template** next to "Edit Cloudflare Workers" OR create a custom token
+4. For a custom token, set the following permissions:
+   - **Account** → **Cloudflare Pages** → **Edit**
+5. Optionally, you can restrict the token to:
+   - Specific accounts (select your account)
+   - IP address filtering (if deploying from a static IP)
+   - TTL/expiration date (for security)
+6. Click **Continue to summary**
+7. Review the permissions and click **Create Token**
+8. **Important**: Copy the token immediately - you won't be able to see it again!
+   - The token looks like: `abcdef123456_EXAMPLE_TOKEN_789xyz`
+
+### Step 4: Configure GitHub Secrets
+
+Now you need to add the Cloudflare credentials to your GitHub repository as secrets.
+
+1. Go to your GitHub repository: `https://github.com/YOUR_USERNAME/svelte-bun`
+2. Click on **Settings** (requires admin access)
+3. In the left sidebar, expand **Secrets and variables**
+4. Click on **Actions**
+5. Click **New repository secret** for each of the following:
+
+#### Secret 1: CLOUDFLARE_API_TOKEN
+- **Name**: `CLOUDFLARE_API_TOKEN`
+- **Value**: Paste the API token you copied in Step 3
+- Click **Add secret**
+
+#### Secret 2: CLOUDFLARE_ACCOUNT_ID
+- **Name**: `CLOUDFLARE_ACCOUNT_ID`
+- **Value**: Paste the Account ID you copied in Step 2
+- Click **Add secret**
+
+### Step 5: Verify the Setup
+
+After adding both secrets:
+
+1. Go to the **Actions** tab in your GitHub repository
+2. Push a commit to the `main` branch or create a pull request
+3. The deployment workflow should start automatically
+4. Monitor the workflow run to ensure it completes successfully
+
+## How the Automated Workflow Works
+
+### Production Deployment (Push to main)
+
+When code is pushed to the `main` branch:
+
+1. GitHub Actions checks out the code
+2. Installs Node.js and project dependencies
+3. Builds the application with `npm run build`
+   - SvelteKit compiles the app using `@sveltejs/adapter-cloudflare`
+   - Output is generated in `.svelte-kit/cloudflare/`
+4. Deploys to Cloudflare Pages using Wrangler
+   - Uploads the built application to Cloudflare's global network
+   - Updates the production URL
+
+**Production URL**: `https://svelte-bun.pages.dev` (or your custom domain)
+
+### Preview Deployment (Pull Requests)
+
+When a pull request is created or updated:
+
+1. GitHub Actions checks out the PR code
+2. Installs Node.js and project dependencies
+3. Builds the application with `npm run build`
+4. Deploys to a unique preview URL using Wrangler
+   - Each PR gets its own preview environment
+   - Preview URL is based on the PR branch name
+
+**Preview URL format**: `https://<branch-name>.svelte-bun.pages.dev`
+
+The preview URL is automatically commented on the pull request, allowing reviewers to test the changes before merging.
+
+## Workflow File
+
+The deployment workflow is defined in `.github/workflows/deploy.yml`:
+
+- **Trigger**: On push to `main` (production) or on pull requests (preview)
+- **Jobs**:
+  - `deploy-production`: Deploys to production (only on main branch)
+  - `deploy-preview`: Deploys preview environment (only on PRs)
+- **Steps**: Checkout → Install dependencies → Build → Deploy with Wrangler
+
+## Environment Variables
+
+If your application requires environment variables (like `DATABASE_URL`), you need to configure them in Cloudflare Pages:
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Click **Workers & Pages**
+3. Select your project (`svelte-bun`)
+4. Go to **Settings** → **Environment variables**
+5. Add your environment variables:
+   - Click **Add variable**
+   - Enter variable name (e.g., `DATABASE_URL`)
+   - Enter variable value
+   - Choose environment: **Production** and/or **Preview**
+   - Click **Save**
+
+**Note**: For this application, you'll likely need:
+- `DATABASE_URL`: PostgreSQL connection string (consider using Cloudflare D1 or a serverless database like Neon or Supabase)
+
+### Database Considerations for Cloudflare Pages
+
+Cloudflare Workers (which power Cloudflare Pages) have specific limitations:
+
+1. **No persistent filesystem**: Traditional file-based databases won't work
+2. **No long-running connections**: Connection pooling differs from traditional Node.js
+3. **Edge runtime**: Not all Node.js APIs are available
+
+**Recommended database options:**
+- [Cloudflare D1](https://developers.cloudflare.com/d1/): Cloudflare's serverless SQLite database
+- [Neon](https://neon.tech/): Serverless PostgreSQL with edge-friendly connection pooling
+- [Supabase](https://supabase.com/): PostgreSQL with REST API and edge support
+- [Turso](https://turso.tech/): Edge-hosted SQLite with global replication
+
+You may need to adjust your database connection logic for the edge runtime environment.
+
+## Custom Domains
+
+To use a custom domain with your Cloudflare Pages deployment:
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Click **Workers & Pages**
+3. Select your project (`svelte-bun`)
+4. Go to **Custom domains**
+5. Click **Set up a custom domain**
+6. Enter your domain name (e.g., `app.example.com`)
+7. Follow the DNS configuration instructions
+8. Wait for DNS propagation (usually a few minutes)
+
+## Troubleshooting
+
+### Deployment Fails with Authentication Error
+
+**Error**: `Authentication error` or `Invalid API token`
+
+**Solution**:
+- Verify that `CLOUDFLARE_API_TOKEN` is correctly set in GitHub Secrets
+- Ensure the API token has not expired
+- Check that the token has the correct permissions (Cloudflare Pages → Edit)
+- Try creating a new API token and updating the secret
+
+### Deployment Fails with Account ID Error
+
+**Error**: `Account ID not found` or `Invalid account ID`
+
+**Solution**:
+- Verify that `CLOUDFLARE_ACCOUNT_ID` is correctly set in GitHub Secrets
+- Ensure you copied the Account ID correctly (no extra spaces or characters)
+- Log in to Cloudflare Dashboard and verify your Account ID
+
+### Build Fails
+
+**Error**: Build process fails during `npm run build`
+
+**Solution**:
+- Check the workflow logs for specific error messages
+- Ensure all dependencies are correctly specified in `package.json`
+- Test the build locally with `npm run build` to identify issues
+- Verify that the project builds successfully on the CI workflow (`.github/workflows/ci.yml`)
+
+### Deployment Works but Site Doesn't Load
+
+**Error**: Deployment succeeds but the site shows errors or doesn't load
+
+**Solution**:
+- Check Cloudflare Pages logs in the dashboard
+- Verify environment variables are correctly configured
+- Check for database connection issues
+- Review the Cloudflare Workers runtime compatibility
+- Consider using Cloudflare's edge-compatible database solutions
+
+### Preview Deployment URL Not Appearing
+
+**Issue**: Pull request created but no preview URL is commented
+
+**Solution**:
+- Check the Actions tab for workflow status
+- Ensure the workflow has `pull-requests: write` permission
+- Verify the PR is targeting the `main` branch
+- Check if the workflow run completed successfully
+
+## Monitoring and Logs
+
+### View Deployment Status
+
+1. Go to your GitHub repository
+2. Click the **Actions** tab
+3. Click on the latest workflow run
+4. View logs for each step
+
+### View Cloudflare Pages Logs
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Click **Workers & Pages**
+3. Select your project (`svelte-bun`)
+4. Go to **Deployments** to see deployment history
+5. Click on a deployment to view logs and details
+
+### Analytics
+
+Cloudflare Pages includes analytics for:
+- Page views
+- Request volume
+- Bandwidth usage
+- Error rates
+
+Access analytics in: **Cloudflare Dashboard** → **Workers & Pages** → **Your Project** → **Analytics**
+
+## Security Best Practices
+
+1. **API Token Rotation**: Regularly rotate your Cloudflare API token (every 90 days recommended)
+2. **Minimal Permissions**: Use tokens with only the required permissions (Cloudflare Pages → Edit)
+3. **Token Scope**: Restrict tokens to specific accounts if possible
+4. **Secret Management**: Never commit secrets to the repository
+5. **Environment Variables**: Store sensitive data in Cloudflare Pages environment variables, not in code
+
+## Additional Resources
+
+- [Cloudflare Pages Documentation](https://developers.cloudflare.com/pages/)
+- [SvelteKit Cloudflare Adapter](https://kit.svelte.dev/docs/adapter-cloudflare)
+- [Wrangler CLI Documentation](https://developers.cloudflare.com/workers/wrangler/)
+- [Cloudflare Workers Runtime](https://developers.cloudflare.com/workers/runtime-apis/)
+
+## Support
+
+If you encounter issues:
+
+1. Check the [Cloudflare Community Forum](https://community.cloudflare.com/)
+2. Review [SvelteKit Discussions](https://github.com/sveltejs/kit/discussions)
+3. Open an issue in this repository with detailed logs and error messages
+
+## Summary
+
+With this setup, your svelte-bun application will:
+- ✅ Automatically deploy to production on every push to `main`
+- ✅ Create preview deployments for every pull request
+- ✅ Leverage Cloudflare's global edge network for fast performance
+- ✅ Scale automatically without managing servers
+- ✅ Benefit from Cloudflare's DDoS protection and CDN
+
+Your deployment workflow is now fully automated - just push code and let GitHub Actions and Cloudflare Pages handle the rest!
