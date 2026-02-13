@@ -21,9 +21,9 @@ When the build completes, the adapter generates a worker script and static asset
 
 ### Node.js Compatibility
 
-The application requires Node.js built-in modules (like `fs`, `path`, `crypto`, etc.) through dependencies. To support these modules in the Cloudflare Workers runtime, the `nodejs_compat` compatibility flag must be enabled in your Cloudflare Pages project settings (see Step 3b below).
+The application requires Node.js built-in modules (like `fs`, `path`, `crypto`, etc.) through dependencies. These imports use the `node:` prefix (e.g., `import { randomBytes } from 'node:crypto'`). To support these modules in the Cloudflare Workers runtime, the `nodejs_compat_populate_process_env` compatibility flag must be enabled in your Cloudflare Pages project settings (see Step 3b below).
 
-The project includes a `wrangler.toml` file for reference, and the GitHub Actions workflow copies it to the deployment directory, but the compatibility flags are ultimately controlled by your project settings in the Cloudflare Dashboard.
+The project includes a `wrangler.toml` file with the compatibility flag specification. The GitHub Actions workflow copies it to the deployment directory for proper bundling configuration.
 
 ## Setting Up Cloudflare Pages Deployment
 
@@ -79,12 +79,13 @@ After creating the project, you must enable Node.js compatibility to avoid deplo
 3. Scroll down to **Functions** section
 4. Find **Compatibility flags**
 5. Click **Configure Workers compatibility flag**
-6. Add the flag: `nodejs_compat`
-   - If you see multiple variants (e.g., with "populate process env" or "do not populate process env" suffixes), choose the standard `nodejs_compat` or `nodejs_compat` with "populate process env"
-   - Do NOT use the "compat" flag (that's different)
+6. Add the flag: `nodejs_compat_populate_process_env`
+   - This is the full name of the flag that enables Node.js built-in modules and populates process environment variables
+   - In the UI, it may appear as "nodejs_compat (populate process env)"
+   - Do NOT use just "compat" (that's different)
 7. Click **Save**
 
-This enables Node.js built-in modules (`fs`, `path`, `crypto`, etc.) required by the application dependencies. Without this flag, the deployment will fail during the bundling phase.
+This enables Node.js built-in modules (`fs`, `path`, `crypto`, etc.) required by the application dependencies. The `node:` prefix in imports (e.g., `import { randomBytes } from 'node:crypto'`) works with this compatibility flag.
 
 ### Step 4: Create a Cloudflare API Token
 
@@ -273,12 +274,12 @@ To use a custom domain with your Cloudflare Pages deployment:
 
 ### Node.js Built-in Module Errors During Deployment
 
-**Error**: `Could not resolve "fs"`, `Could not resolve "path"`, or similar errors for Node.js built-in modules during Wrangler bundling
+**Error**: `Could not resolve "fs"`, `Could not resolve "crypto"`, or similar errors for Node.js built-in modules during Wrangler bundling
 
 **Example**:
 ```
-✘ [ERROR] Could not resolve "fs"
-The package "fs" wasn't found on the file system but is built into node.
+✘ [ERROR] Could not resolve "crypto"
+The package "crypto" wasn't found on the file system but is built into node.
 - Add the "nodejs_compat" compatibility flag to your project.
 ```
 
@@ -290,7 +291,7 @@ This should be automatically handled by the `wrangler.toml` file in the reposito
 1. Verify `wrangler.toml` exists in the root directory with:
    ```toml
    name = "svelte-bun"
-   compatibility_flags = ["nodejs_compat"]
+   compatibility_flags = ["nodejs_compat_populate_process_env"]
    compatibility_date = "2024-01-01"
    ```
 
@@ -300,7 +301,11 @@ This should be automatically handled by the `wrangler.toml` file in the reposito
      run: cp wrangler.toml .svelte-kit/cloudflare/
    ```
 
-3. If issues persist, check if your code directly uses Node.js APIs that are not supported even with `nodejs_compat`. Consider using edge-compatible alternatives.
+3. Verify that your Cloudflare Pages project has the `nodejs_compat_populate_process_env` compatibility flag configured in Settings → Functions → Compatibility flags.
+
+4. Ensure Node.js built-in module imports use the `node:` prefix (e.g., `import { randomBytes } from 'node:crypto'` instead of `import { randomBytes } from 'crypto'`).
+
+5. If issues persist, check if your code directly uses Node.js APIs that are not supported even with `nodejs_compat_populate_process_env`. Consider using edge-compatible alternatives.
 
 ### Deployment Works but Site Doesn't Load
 
