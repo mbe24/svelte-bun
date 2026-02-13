@@ -12,6 +12,9 @@ jobs:
     permissions:
       contents: read
     
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sveltekit_db
+    
     services:
       postgres:
         image: postgres:16-alpine
@@ -49,13 +52,9 @@ jobs:
     
     - name: Setup database schema
       run: bun run db:push
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sveltekit_db
     
     - name: Install Playwright browsers
       run: bunx playwright install --with-deps chromium
     
     - name: Run e2e tests
       run: bun run test:e2e
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sveltekit_db
