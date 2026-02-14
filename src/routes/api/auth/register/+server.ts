@@ -34,7 +34,13 @@ export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 		if (error?.code === '23505') {
 			return json({ error: 'Username already exists' }, { status: 409 });
 		}
-		console.error('Registration error:', error);
+		// Log error details for debugging
+		console.error('Registration error:', {
+			message: error?.message || String(error),
+			code: error?.code,
+			name: error?.name,
+			stack: error?.stack
+		});
 		return json({ error: 'Registration failed' }, { status: 500 });
 	}
 };

@@ -31,6 +31,11 @@ export function getDb(env?: { DATABASE_URL?: string }) {
 		(typeof process !== 'undefined' ? process.env.DATABASE_URL : undefined) ||
 		'postgresql://postgres:postgres@localhost:5432/sveltekit_db';
 
+	// Validate connection string in Cloudflare Workers environment
+	if (isCloudflareWorker() && !env?.DATABASE_URL) {
+		throw new Error('DATABASE_URL environment variable is not configured in Cloudflare Pages. Please add it in Settings → Environment variables.');
+	}
+
 	// Use Neon serverless driver for Cloudflare Workers (HTTP-based)
 	// Use postgres-js for local development (TCP-based)
 	if (isCloudflareWorker()) {
