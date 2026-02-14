@@ -154,14 +154,20 @@ This application is optimized for deployment on Cloudflare Pages with automatic 
 - HTTP-based database connections for Cloudflare Workers
 - No TCP sockets required
 
+**Prerequisites:**
+- ⚠️ **Required**: A Neon PostgreSQL database ([neon.tech](https://neon.tech/) - free tier available)
+- ⚠️ **Required**: DATABASE_URL configured in Cloudflare Pages environment variables
+
 **Quick Start:**
 1. Create a free [Neon](https://neon.tech/) PostgreSQL database
 2. Get your connection string from Neon dashboard
 3. Follow the detailed guide in [docs/DEPLOY.md](docs/DEPLOY.md)
-4. Add `DATABASE_URL` to Cloudflare Pages environment variables
+4. **Critical**: Add `DATABASE_URL` to Cloudflare Pages Settings → Environment variables (both Production and Preview)
 5. Push to GitHub - automatic deployment via GitHub Actions
 
-See [docs/DEPLOY.md](docs/DEPLOY.md) for complete instructions.
+⚠️ **Important**: Without DATABASE_URL configured, user registration and login will fail with a database configuration error.
+
+See [docs/DEPLOY.md](docs/DEPLOY.md) for complete step-by-step instructions.
 
 ## Docker Deployment
 
