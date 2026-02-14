@@ -31,6 +31,10 @@ The project includes a `wrangler.toml` file with the compatibility flag specific
 
 1. A Cloudflare account (free tier is sufficient)
 2. Admin access to the GitHub repository
+3. **A Neon PostgreSQL database** (required for user authentication)
+   - Create a free account at [neon.tech](https://neon.tech/)
+   - Create a new PostgreSQL database
+   - Keep the connection string handy (you'll need it for Step 3c)
 
 ### Step 1: Create a Cloudflare Account
 
@@ -86,6 +90,27 @@ After creating the project, you must enable Node.js compatibility to avoid deplo
 7. Click **Save**
 
 This enables Node.js built-in modules (`fs`, `path`, `crypto`, etc.) required by the application dependencies. The `node:` prefix in imports (e.g., `import { randomBytes } from 'node:crypto'`) works with this compatibility flag.
+
+### Step 3c: Configure DATABASE_URL Environment Variable (Critical!)
+
+**This step is REQUIRED for the application to work.** Without the DATABASE_URL, user registration and login will fail.
+
+1. In the Cloudflare Dashboard, ensure you're in your project (`svelte-bun`)
+2. Click on **Settings** tab
+3. Scroll down to **Environment variables** section
+4. Click **Add variable**
+5. Enter the following:
+   - **Variable name**: `DATABASE_URL`
+   - **Value**: Your Neon PostgreSQL connection string
+     - Example: `postgresql://user:password@ep-cool-name-12345.us-east-2.aws.neon.tech/neondb?sslmode=require`
+     - Get this from your [Neon dashboard](https://console.neon.tech/)
+   - **Environment**: Select both **Production** and **Preview**
+6. Click **Save**
+
+**Important Notes**:
+- The connection string must be from a Neon database or another PostgreSQL provider that supports HTTP connections
+- Traditional PostgreSQL servers (that only support TCP) will NOT work on Cloudflare Workers/Pages
+- Make sure to run database migrations before first use (see Database Considerations section below)
 
 ### Step 4: Create a Cloudflare API Token
 
@@ -215,16 +240,193 @@ The GitHub Actions workflow uses `process.env` during the build step. If your bu
 Cloudflare Workers (which power Cloudflare Pages) have specific limitations:
 
 1. **No persistent filesystem**: Traditional file-based databases won't work
-2. **No long-running connections**: Connection pooling differs from traditional Node.js
+2. **No TCP connections**: Traditional database drivers that use TCP (like `postgres`) won't work
 3. **Edge runtime**: Not all Node.js APIs are available
 
+**This application supports:**
+- **Neon serverless driver** (`@neondatabase/serverless`): HTTP-based PostgreSQL client for Cloudflare Workers
+- **postgres-js** (local development): Traditional TCP-based PostgreSQL client for Node.js/Bun
+
+The database connection logic automatically detects the runtime environment:
+- **Cloudflare Workers/Pages**: Uses Neon serverless driver with HTTP connections
+- **Local development**: Uses postgres-js with TCP connections
+
 **Recommended database options:**
+- [Neon](https://neon.tech/): Serverless PostgreSQL with edge-friendly HTTP-based connections (✅ **recommended and supported**)
 - [Cloudflare D1](https://developers.cloudflare.com/d1/): Cloudflare's serverless SQLite database
-- [Neon](https://neon.tech/): Serverless PostgreSQL with edge-friendly connection pooling
 - [Supabase](https://supabase.com/): PostgreSQL with REST API and edge support
 - [Turso](https://turso.tech/): Edge-hosted SQLite with global replication
 
-You may need to adjust your database connection logic for the edge runtime environment.
+**To use Neon for Cloudflare Pages:**
+
+#### Option 1: Single Database (Simpler, for personal projects)
+1. Create a free account at [neon.tech](https://neon.tech/)
+2. Create a new PostgreSQL database
+3. Copy the connection string
+4. Add it as an environment variable `DATABASE_URL` in Cloudflare Pages Settings → Environment variables
+   - Select both **Production** and **Preview** environments
+5. Run database migrations (see below)
+6. The application will automatically use the Neon serverless driver in the Cloudflare environment
+
+#### Option 2: Separate Databases (Recommended, for production projects)
+
+For production applications, it's **highly recommended** to use separate databases for production and preview environments. This allows you to:
+- Test database schema changes in preview without affecting production
+- Experiment with data modifications safely
+- Keep production data isolated from test data
+
+**Setup:**
+1. Create a free account at [neon.tech](https://neon.tech/)
+2. Create **two** PostgreSQL databases:
+   - `svelte-bun-prod` (for production)
+   - `svelte-bun-preview` (for preview/staging)
+3. Copy both connection strings
+4. Add them as environment variables in Cloudflare Pages Settings → Environment variables:
+   - Add `DATABASE_URL` with production connection string
+     - Select **Production** environment only
+     - Click **Save**
+   - Add `DATABASE_URL` with preview connection string  
+     - Select **Preview** environment only
+     - Click **Save**
+5. Run migrations on both databases (see below)
+
+**Benefits of Separate Databases:**
+- ✅ Schema changes can be tested in preview before going to production
+- ✅ Pull requests with entity model changes won't affect production
+- ✅ Preview environments have isolated test data
+- ✅ Production data remains safe and pristine
+- ✅ You can experiment freely in preview environments
+
+**Cost:** Neon's free tier includes 10 branches (databases), so you can have multiple preview databases at no cost.
+
+### Running Database Migrations
+
+**Critical:** After creating your Neon database(s), you must run migrations to create the required tables.
+
+#### Method 1: Using the Web UI (Easiest! ⭐ RECOMMENDED)
+
+This is the **easiest method** - no command line or curl needed!
+
+1. **Deploy your application** to Cloudflare Pages (push to GitHub)
+
+2. **Visit the migration page** in your browser:
+   ```
+   https://your-app.pages.dev/api/admin/migrate
+   ```
+   
+   Replace `your-app.pages.dev` with your actual Cloudflare Pages URL.
+   
+   **Example for your preview:** `https://96963ecc.svelte-bun.pages.dev/api/admin/migrate`
+
+3. **Click the "Run Database Migration" button**
+   
+   You'll see a nice web interface showing:
+   - Current migration status
+   - A button to run migrations
+   - Real-time feedback
+
+4. **That's it!** The page will refresh and show "✅ Database Ready"
+
+5. **If using separate preview database**, visit the preview URL and run migration there too
+
+**Optional Security:**
+- You can add `MIGRATION_SECRET` in Cloudflare Pages → Settings → Environment variables
+- If set, you'll need to enter it on the migration page
+
+**Screenshot of what you'll see:**
+- Before migration: Yellow warning box with "⚠️ Migration Required"
+- After migration: Green success box with "✅ Database Ready"
+
+#### Method 2: Using curl/API (For automation)
+
+If you prefer command line or want to automate:
+
+**Without authentication** (if no MIGRATION_SECRET is set):
+```bash
+curl -X POST https://your-app.pages.dev/api/admin/migrate
+```
+
+**With authentication** (if MIGRATION_SECRET is set):
+```bash
+curl -X POST https://your-app.pages.dev/api/admin/migrate \
+  -H "Authorization: Bearer your-secret-token-here"
+```
+
+**For preview deployments**:
+```bash
+curl -X POST https://your-preview-url.pages.dev/api/admin/migrate \
+  -H "Authorization: Bearer your-secret-token-here"
+```
+
+**Check migration status**:
+```bash
+curl https://your-app.pages.dev/api/admin/migrate
+```
+
+Expected response when successful:
+```json
+{
+  "migrated": true,
+  "tables": ["counters", "sessions", "users"],
+  "message": "All required tables exist"
+}
+```
+
+**Notes:**
+- The migration endpoint is **idempotent** - safe to run multiple times
+- Tables are created with `CREATE TABLE IF NOT EXISTS`, so existing tables won't be affected
+
+#### Method 3: Using Drizzle Studio (If you can run commands locally)
+
+1. Set your DATABASE_URL locally:
+   ```bash
+   export DATABASE_URL="postgresql://user:pass@your-neon-host.neon.tech/dbname"
+   ```
+
+2. Push the schema directly:
+   ```bash
+   npm run db:push
+   ```
+   
+   This will create all tables in your database.
+
+3. Repeat for preview database if using separate databases:
+   ```bash
+   export DATABASE_URL="postgresql://user:pass@your-neon-preview-host.neon.tech/dbname"
+   npm run db:push
+   ```
+
+#### Method 3: Using SQL Migrations (Advanced)
+
+1. The migration files are already generated in the `drizzle/` directory
+
+2. Connect to your Neon database using `psql` or the Neon SQL Editor:
+   - Go to your Neon project dashboard
+   - Click on **SQL Editor**
+   - Copy and paste the contents of `drizzle/0000_perfect_meggan.sql`
+   - Click **Run**
+
+3. Repeat for preview database if using separate databases
+
+4. Verify tables were created:
+   ```sql
+   \dt  -- in psql
+   -- or in Neon SQL Editor:
+   SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+   ```
+
+   You should see: `users`, `sessions`, `counters`
+
+#### Method 3: Automatic Migration Script
+
+You can create a migration script that runs on deployment. However, be careful with this approach as it requires your DATABASE_URL to be accessible during the build phase.
+
+**Important Notes:**
+- Migrations only need to be run once per database
+- If you add new tables or change the schema, run `npm run db:generate` to create new migration files
+- Always test schema changes in preview before applying to production
+- Neon databases support automatic schema branching - see [Neon branching docs](https://neon.tech/docs/guides/branching)
+
 
 ## Custom Domains
 
@@ -240,6 +442,109 @@ To use a custom domain with your Cloudflare Pages deployment:
 8. Wait for DNS propagation (usually a few minutes)
 
 ## Troubleshooting
+
+### Registration/Login Fails with "relation \"users\" does not exist"
+
+**Error**: Error in Cloudflare Pages logs shows:
+```
+"message": "relation \"users\" does not exist",
+"code": "42P01"
+```
+
+**Cause**: Database migrations have not been run. The tables (`users`, `sessions`, `counters`) don't exist in the Neon database.
+
+**Solution:**
+
+**🎯 EASIEST FIX - Just visit this URL in your browser:**
+
+```
+https://your-app.pages.dev/api/admin/migrate
+```
+
+Replace `your-app.pages.dev` with your actual URL (e.g., `96963ecc.svelte-bun.pages.dev`).
+
+**What you'll see:**
+1. A nice web page showing migration status
+2. A big button that says "▶ Run Database Migration"
+3. Click it and wait a few seconds
+4. Page refreshes showing "✅ Database Ready"
+5. Done! Try registration again - it will work now!
+
+**Alternative - Using curl:**
+
+```bash
+# Without authentication (if no MIGRATION_SECRET set)
+curl -X POST https://your-app.pages.dev/api/admin/migrate
+
+# Or with authentication (if MIGRATION_SECRET is set in Cloudflare env vars)
+curl -X POST https://your-app.pages.dev/api/admin/migrate \
+  -H "Authorization: Bearer your-secret-token"
+```
+
+**Check if migration succeeded:**
+```bash
+curl https://your-app.pages.dev/api/admin/migrate
+```
+
+Should return:
+```json
+{
+  "migrated": true,
+  "tables": ["counters", "sessions", "users"],
+  "message": "All required tables exist"
+   }
+   ```
+
+3. **Try registration again** - it should work now!
+
+**Alternative Methods** (if you can run commands locally):
+
+   **Option A: Using Drizzle Push**
+   ```bash
+   # Set your Neon DATABASE_URL
+   export DATABASE_URL="postgresql://user:pass@your-neon-host.neon.tech/dbname"
+   
+   # Push schema to database
+   npm run db:push
+   ```
+
+   **Option B: Using SQL directly**
+   - Go to your Neon project dashboard
+   - Click **SQL Editor**
+   - Copy the contents of `drizzle/0000_perfect_meggan.sql` from this repository
+   - Paste and run in the SQL Editor
+
+**If using separate preview database**, repeat the migration for the preview environment URL.
+
+**Prevention**: Always run migrations after creating a new database or before first deployment.
+
+### Registration/Login Fails with "Database configuration error"
+
+**Error**: Users see "Database configuration error. Please contact the administrator." or "Registration failed" when trying to register or login on Cloudflare Pages.
+
+**Cause**: The `DATABASE_URL` environment variable is not configured in Cloudflare Pages, or the database connection is failing.
+
+**Solution**:
+1. **Verify DATABASE_URL is configured**:
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Click **Workers & Pages** → Select your project (`svelte-bun`)
+   - Go to **Settings** → **Environment variables**
+   - Ensure `DATABASE_URL` is set for both **Production** and **Preview** environments (or separately if using two databases)
+   
+2. **Use a Neon database**:
+   - Create a free account at [neon.tech](https://neon.tech/)
+   - Create a new PostgreSQL database
+   - Copy the connection string (it should start with `postgresql://`)
+   - Add it as the value for `DATABASE_URL` in Cloudflare Pages
+   
+3. **Verify database tables exist** (see above troubleshooting section)
+   
+4. **Check Cloudflare Pages logs**:
+   - Go to your project in Cloudflare Dashboard
+   - Click **View logs** on a recent deployment
+   - Look for detailed error messages that might indicate connection issues
+
+**Note**: The application requires a PostgreSQL database that supports HTTP connections (like Neon). Traditional PostgreSQL servers that only support TCP will not work in Cloudflare Workers/Pages.
 
 ### Project Not Found Error (Code 8000007)
 
@@ -347,23 +652,29 @@ Replace native dependencies with pure JavaScript alternatives:
 
 **This project uses:**
 - ✅ `bcryptjs` instead of `bcrypt` for password hashing
-- ⚠️ `postgres` package - Consider migrating to `@neondatabase/serverless` or Cloudflare D1 for edge deployment
+- ✅ `@neondatabase/serverless` for Cloudflare Workers/Pages (HTTP-based PostgreSQL)
+- ✅ `postgres` for local development (TCP-based PostgreSQL)
+- ✅ Automatic runtime detection to use the correct driver
 
-**Note**: The `postgres` package may have connection issues on Cloudflare Workers due to the edge runtime's networking model. For production edge deployment, consider using:
-- [Neon serverless driver](https://neon.tech/docs/serverless/serverless-driver) - HTTP-based PostgreSQL with edge support
-- [Cloudflare D1](https://developers.cloudflare.com/d1/) - Cloudflare's native SQLite database
-- [Turso](https://turso.tech/) - Edge-hosted SQLite with LibSQL
+The application automatically detects the runtime environment and uses the appropriate database driver:
+- **Cloudflare Workers/Pages**: Uses `@neondatabase/serverless` with HTTP connections
+- **Local development**: Uses `postgres` with TCP connections
+
+**Database Connection:**
+To use this application on Cloudflare Pages, you need a PostgreSQL database that supports HTTP connections. We recommend:
+- [Neon](https://neon.tech/) - Free tier available, optimized for edge environments
+- Set the `DATABASE_URL` environment variable in Cloudflare Pages Settings
 
 ### Deployment Works but Site Doesn't Load
 
 **Error**: Deployment succeeds but the site shows errors or doesn't load
 
 **Solution**:
-- Check Cloudflare Pages logs in the dashboard
-- Verify environment variables are correctly configured
-- Check for database connection issues
+- Check Cloudflare Pages logs in the dashboard for specific errors
+- Verify the `DATABASE_URL` environment variable is correctly configured in Cloudflare Pages Settings
+- Ensure your database (e.g., Neon) allows connections from Cloudflare's edge network
 - Review the Cloudflare Workers runtime compatibility
-- Consider using Cloudflare's edge-compatible database solutions
+- Check that the database has the required tables (run migrations)
 
 ### Preview Deployment URL Not Appearing
 

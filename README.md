@@ -26,18 +26,23 @@ This project serves as a reference implementation for building modern web applic
 - **Database**: PostgreSQL
 - **ORM**: Drizzle ORM
 - **Migration Tool**: Drizzle Kit
+- **Database Drivers**: 
+  - `@neondatabase/serverless` (for Cloudflare Workers/Pages)
+  - `postgres` (for local development)
 - **Build Tool**: Vite (Integrated in SvelteKit)
 - **Unit/Integration Testing**: Bun Test (Built-in)
 - **End-to-End Testing**: Playwright
-- **Deployment**: Docker (using oven/bun image)
+- **Deployment**: Docker, Cloudflare Pages
 
 ## Features
 
-- User registration with password hashing (bcrypt)
+- User registration with password hashing (bcryptjs)
 - User login with session management
 - Protected counter page (increment/decrement)
 - Session-based authentication
 - PostgreSQL database with Drizzle ORM
+- Automatic runtime detection for database drivers
+- Edge-compatible deployment (Cloudflare Pages)
 - Docker deployment with docker-compose
 
 ## Screenshots
@@ -137,6 +142,46 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 - `bun run db:push` - Push schema changes to the database
 - `bun run db:studio` - Open Drizzle Studio (database GUI)
 - `bun test` - Run unit tests
+
+## Deployment
+
+### Cloudflare Pages Deployment
+
+This application is optimized for deployment on Cloudflare Pages with automatic edge runtime compatibility.
+
+**Key Features:**
+- Automatic database driver selection (Neon serverless for edge, postgres-js for local)
+- HTTP-based database connections for Cloudflare Workers
+- No TCP sockets required
+
+**Prerequisites:**
+- ⚠️ **Required**: A Neon PostgreSQL database ([neon.tech](https://neon.tech/) - free tier available)
+- ⚠️ **Required**: DATABASE_URL configured in Cloudflare Pages environment variables
+- ⚠️ **Required**: Database migrations must be run to create tables
+
+**Quick Start:**
+1. Create a free [Neon](https://neon.tech/) PostgreSQL database
+2. Get your connection string from Neon dashboard
+3. Follow the detailed guide in [docs/DEPLOY.md](docs/DEPLOY.md)
+4. **Critical**: Add `DATABASE_URL` to Cloudflare Pages Settings → Environment variables (both Production and Preview)
+5. Push to GitHub - automatic deployment via GitHub Actions
+6. **⭐ Run migrations** by visiting this URL in your browser:
+   ```
+   https://your-app.pages.dev/api/admin/migrate
+   ```
+   Click the "Run Database Migration" button - that's it!
+   
+   Alternative methods:
+   - **curl**: `curl -X POST https://your-app.pages.dev/api/admin/migrate`
+   - **Local**: Run `npm run db:push` with DATABASE_URL set
+   - See [docs/DEPLOY.md](docs/DEPLOY.md) for all migration methods
+
+⚠️ **Important**: 
+- Without DATABASE_URL configured, user registration and login will fail with a database configuration error.
+- Without running migrations, you'll get "relation 'users' does not exist" errors.
+- **Just visit `/api/admin/migrate` in your browser and click the button to fix this!**
+
+See [docs/DEPLOY.md](docs/DEPLOY.md) for complete step-by-step instructions, including separate database setup for preview/production environments.
 
 ## Docker Deployment
 

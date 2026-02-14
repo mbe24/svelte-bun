@@ -33,8 +33,14 @@ export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 		});
 
 		return json({ success: true });
-	} catch (error) {
-		console.error('Login error:', error);
+	} catch (error: any) {
+		// Log error details for debugging
+		console.error('Login error:', {
+			message: error?.message || String(error),
+			code: error?.code,
+			name: error?.name,
+			stack: error?.stack
+		});
 		return json({ error: 'Login failed' }, { status: 500 });
 	}
 };
