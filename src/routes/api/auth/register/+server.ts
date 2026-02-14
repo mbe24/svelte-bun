@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { createUser, createSession } from '$lib/auth';
 import { json } from '@sveltejs/kit';
 
-export const POST: RequestHandler = async ({ request, cookies }) => {
+export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 	try {
 		const { username, password } = await request.json();
 
@@ -18,8 +18,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ error: 'Password must be at least 6 characters' }, { status: 400 });
 		}
 
-		const userId = await createUser(username, password);
-		const sessionId = await createSession(userId);
+		const env = platform?.env as { DATABASE_URL?: string } | undefined;
+		const userId = await createUser(username, password, env);
+		const sessionId = await createSession(userId, env);
 
 		cookies.set('session', sessionId, {
 			path: '/',

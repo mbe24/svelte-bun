@@ -5,7 +5,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const sessionId = event.cookies.get('session');
 
 	if (sessionId) {
-		const userId = await validateSession(sessionId);
+		// Pass platform.env for Cloudflare Workers compatibility
+		const env = event.platform?.env as { DATABASE_URL?: string } | undefined;
+		const userId = await validateSession(sessionId, env);
 		if (userId) {
 			event.locals.userId = userId;
 		} else {

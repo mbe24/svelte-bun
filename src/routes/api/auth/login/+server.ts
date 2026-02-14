@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { getUserByUsername, verifyPassword, createSession } from '$lib/auth';
 import { json } from '@sveltejs/kit';
 
-export const POST: RequestHandler = async ({ request, cookies }) => {
+export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 	try {
 		const { username, password } = await request.json();
 
@@ -10,7 +10,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ error: 'Username and password are required' }, { status: 400 });
 		}
 
-		const user = await getUserByUsername(username);
+		const env = platform?.env as { DATABASE_URL?: string } | undefined;
+		const user = await getUserByUsername(username, env);
 
 		if (!user) {
 			return json({ error: 'Invalid credentials' }, { status: 401 });
@@ -22,7 +23,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ error: 'Invalid credentials' }, { status: 401 });
 		}
 
-		const sessionId = await createSession(user.id);
+		const sessionId = await createSession(user.id, env);
 
 		cookies.set('session', sessionId, {
 			path: '/',

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
-import { db } from '$lib/db';
+import { getDb } from '$lib/db';
 import { users, sessions } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -19,7 +19,8 @@ export function generateSessionId(): string {
 	return randomBytes(32).toString('hex');
 }
 
-export async function createSession(userId: number): Promise<string> {
+export async function createSession(userId: number, env?: { DATABASE_URL?: string }): Promise<string> {
+	const db = getDb(env);
 	const sessionId = generateSessionId();
 	const expiresAt = new Date(Date.now() + SESSION_DURATION);
 
@@ -32,7 +33,8 @@ export async function createSession(userId: number): Promise<string> {
 	return sessionId;
 }
 
-export async function validateSession(sessionId: string): Promise<number | null> {
+export async function validateSession(sessionId: string, env?: { DATABASE_URL?: string }): Promise<number | null> {
+	const db = getDb(env);
 	const [session] = await db
 		.select()
 		.from(sessions)
@@ -49,11 +51,13 @@ export async function validateSession(sessionId: string): Promise<number | null>
 	return session.userId;
 }
 
-export async function deleteSession(sessionId: string): Promise<void> {
+export async function deleteSession(sessionId: string, env?: { DATABASE_URL?: string }): Promise<void> {
+	const db = getDb(env);
 	await db.delete(sessions).where(eq(sessions.id, sessionId));
 }
 
-export async function createUser(username: string, password: string): Promise<number> {
+export async function createUser(username: string, password: string, env?: { DATABASE_URL?: string }): Promise<number> {
+	const db = getDb(env);
 	const hashedPassword = await hashPassword(password);
 	
 	const [user] = await db
@@ -67,7 +71,8 @@ export async function createUser(username: string, password: string): Promise<nu
 	return user.id;
 }
 
-export async function getUserByUsername(username: string) {
+export async function getUserByUsername(username: string, env?: { DATABASE_URL?: string }) {
+	const db = getDb(env);
 	const [user] = await db
 		.select()
 		.from(users)
