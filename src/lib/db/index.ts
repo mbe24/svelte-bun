@@ -1,14 +1,26 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
+import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
+import { drizzle as drizzleNeon } from 'drizzle-orm/neon-serverless';
 import postgres from 'postgres';
+import { neonConfig, Pool } from '@neondatabase/serverless';
 import * as schema from './schema';
 
-// Database connection is initialized lazily per request in Cloudflare Workers
-let _db: ReturnType<typeof drizzle> | null = null;
-let _client: ReturnType<typeof postgres> | null = null;
+// Detect if running in Cloudflare Workers environment
+function isCloudflareWorker(): boolean {
+	// @ts-ignore - WebSocketPair is a Cloudflare-specific global
+	return typeof globalThis.WebSocketPair !== 'undefined';
+}
 
 /**
  * Get or create the database connection
  * @param env - Platform environment (for Cloudflare Workers) or undefined (for Node.js)
+ * 
+ * When running on Cloudflare Workers/Pages (edge runtime):
+ * - Uses Neon serverless driver with HTTP-based connections (no TCP)
+ * - Creates a new connection per request (stateless)
+ * 
+ * When running locally (Node.js/Bun):
+ * - Uses postgres-js with traditional TCP connections
+ * - Connection pooling is handled by postgres-js
  */
 export function getDb(env?: { DATABASE_URL?: string }) {
 	// For Cloudflare Workers, env will be provided via platform.env
@@ -18,18 +30,23 @@ export function getDb(env?: { DATABASE_URL?: string }) {
 		(typeof process !== 'undefined' ? process.env.DATABASE_URL : undefined) ||
 		'postgresql://postgres:postgres@localhost:5432/sveltekit_db';
 
-	// Return existing connection if available
-	if (_db && _client) {
-		return _db;
+	// Use Neon serverless driver for Cloudflare Workers (HTTP-based)
+	// Use postgres-js for local development (TCP-based)
+	if (isCloudflareWorker()) {
+		// Neon serverless driver for edge runtime
+		// Disable WebSocket support as it's not available in Cloudflare Workers
+		neonConfig.webSocketConstructor = undefined as any;
+		
+		const client = new Pool({ connectionString });
+		return drizzleNeon(client, { schema });
+	} else {
+		// Traditional postgres-js for local development
+		// Connection pooling is handled by postgres-js automatically
+		const client = postgres(connectionString);
+		return drizzlePostgres(client, { schema });
 	}
-
-	// Create new connection
-	_client = postgres(connectionString);
-	_db = drizzle(_client, { schema });
-	
-	return _db;
 }
 
 // Export the db connection for backward compatibility
 // Note: This will be null in Cloudflare Workers - always use getDb(env) instead
-export const db = _db;
+export const db = null;

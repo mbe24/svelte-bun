@@ -66,7 +66,7 @@ export async function createUser(username: string, password: string, env?: { DAT
 			username,
 			password: hashedPassword
 		})
-		.returning({ id: users.id });
+		.returning();
 
 	return user.id;
 }

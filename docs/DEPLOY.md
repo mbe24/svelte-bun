@@ -215,16 +215,30 @@ The GitHub Actions workflow uses `process.env` during the build step. If your bu
 Cloudflare Workers (which power Cloudflare Pages) have specific limitations:
 
 1. **No persistent filesystem**: Traditional file-based databases won't work
-2. **No long-running connections**: Connection pooling differs from traditional Node.js
+2. **No TCP connections**: Traditional database drivers that use TCP (like `postgres`) won't work
 3. **Edge runtime**: Not all Node.js APIs are available
 
+**This application supports:**
+- **Neon serverless driver** (`@neondatabase/serverless`): HTTP-based PostgreSQL client for Cloudflare Workers
+- **postgres-js** (local development): Traditional TCP-based PostgreSQL client for Node.js/Bun
+
+The database connection logic automatically detects the runtime environment:
+- **Cloudflare Workers/Pages**: Uses Neon serverless driver with HTTP connections
+- **Local development**: Uses postgres-js with TCP connections
+
 **Recommended database options:**
+- [Neon](https://neon.tech/): Serverless PostgreSQL with edge-friendly HTTP-based connections (✅ **recommended and supported**)
 - [Cloudflare D1](https://developers.cloudflare.com/d1/): Cloudflare's serverless SQLite database
-- [Neon](https://neon.tech/): Serverless PostgreSQL with edge-friendly connection pooling
 - [Supabase](https://supabase.com/): PostgreSQL with REST API and edge support
 - [Turso](https://turso.tech/): Edge-hosted SQLite with global replication
 
-You may need to adjust your database connection logic for the edge runtime environment.
+**To use Neon for Cloudflare Pages:**
+1. Create a free account at [neon.tech](https://neon.tech/)
+2. Create a new PostgreSQL database
+3. Copy the connection string
+4. Add it as an environment variable `DATABASE_URL` in Cloudflare Pages Settings → Environment variables
+5. The application will automatically use the Neon serverless driver in the Cloudflare environment
+
 
 ## Custom Domains
 
@@ -347,23 +361,29 @@ Replace native dependencies with pure JavaScript alternatives:
 
 **This project uses:**
 - ✅ `bcryptjs` instead of `bcrypt` for password hashing
-- ⚠️ `postgres` package - Consider migrating to `@neondatabase/serverless` or Cloudflare D1 for edge deployment
+- ✅ `@neondatabase/serverless` for Cloudflare Workers/Pages (HTTP-based PostgreSQL)
+- ✅ `postgres` for local development (TCP-based PostgreSQL)
+- ✅ Automatic runtime detection to use the correct driver
 
-**Note**: The `postgres` package may have connection issues on Cloudflare Workers due to the edge runtime's networking model. For production edge deployment, consider using:
-- [Neon serverless driver](https://neon.tech/docs/serverless/serverless-driver) - HTTP-based PostgreSQL with edge support
-- [Cloudflare D1](https://developers.cloudflare.com/d1/) - Cloudflare's native SQLite database
-- [Turso](https://turso.tech/) - Edge-hosted SQLite with LibSQL
+The application automatically detects the runtime environment and uses the appropriate database driver:
+- **Cloudflare Workers/Pages**: Uses `@neondatabase/serverless` with HTTP connections
+- **Local development**: Uses `postgres` with TCP connections
+
+**Database Connection:**
+To use this application on Cloudflare Pages, you need a PostgreSQL database that supports HTTP connections. We recommend:
+- [Neon](https://neon.tech/) - Free tier available, optimized for edge environments
+- Set the `DATABASE_URL` environment variable in Cloudflare Pages Settings
 
 ### Deployment Works but Site Doesn't Load
 
 **Error**: Deployment succeeds but the site shows errors or doesn't load
 
 **Solution**:
-- Check Cloudflare Pages logs in the dashboard
-- Verify environment variables are correctly configured
-- Check for database connection issues
+- Check Cloudflare Pages logs in the dashboard for specific errors
+- Verify the `DATABASE_URL` environment variable is correctly configured in Cloudflare Pages Settings
+- Ensure your database (e.g., Neon) allows connections from Cloudflare's edge network
 - Review the Cloudflare Workers runtime compatibility
-- Consider using Cloudflare's edge-compatible database solutions
+- Check that the database has the required tables (run migrations)
 
 ### Preview Deployment URL Not Appearing
 
