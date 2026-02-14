@@ -303,7 +303,57 @@ For production applications, it's **highly recommended** to use separate databas
 
 **Critical:** After creating your Neon database(s), you must run migrations to create the required tables.
 
-#### Method 1: Using Drizzle Studio (Recommended for beginners)
+#### Method 1: Using the Migration API Endpoint (Easiest - No Local Setup Required!)
+
+This is the **recommended method** if you cannot run migrations locally or don't have command-line access.
+
+1. **Deploy your application** to Cloudflare Pages (push to GitHub)
+
+2. **Optional but Recommended**: Add a migration secret for security
+   - Go to Cloudflare Pages → Your Project → Settings → Environment variables
+   - Add `MIGRATION_SECRET` with a random value (e.g., `my-secret-token-12345`)
+   - Select both **Production** and **Preview** environments
+   - Click **Save**
+
+3. **Run the migration** by making an HTTP request to your deployed app:
+
+   **Without authentication** (if no MIGRATION_SECRET is set):
+   ```bash
+   curl -X POST https://your-app.pages.dev/api/admin/migrate
+   ```
+
+   **With authentication** (if MIGRATION_SECRET is set):
+   ```bash
+   curl -X POST https://your-app.pages.dev/api/admin/migrate \
+     -H "Authorization: Bearer your-secret-token-here"
+   ```
+
+   **For preview deployments**:
+   ```bash
+   curl -X POST https://your-preview-url.pages.dev/api/admin/migrate \
+     -H "Authorization: Bearer your-secret-token-here"
+   ```
+
+4. **Check migration status**:
+   ```bash
+   curl https://your-app.pages.dev/api/admin/migrate
+   ```
+
+   Expected response when successful:
+   ```json
+   {
+     "migrated": true,
+     "tables": ["counters", "sessions", "users"],
+     "message": "All required tables exist"
+   }
+   ```
+
+**Notes:**
+- The migration endpoint is **idempotent** - safe to run multiple times
+- Tables are created with `CREATE TABLE IF NOT EXISTS`, so existing tables won't be affected
+- You can also visit the URL in your browser to run migrations via GET/POST
+
+#### Method 2: Using Drizzle Studio (If you can run commands locally)
 
 1. Set your DATABASE_URL locally:
    ```bash
@@ -323,7 +373,7 @@ For production applications, it's **highly recommended** to use separate databas
    npm run db:push
    ```
 
-#### Method 2: Using SQL Migrations (Recommended for production)
+#### Method 3: Using SQL Migrations (Advanced)
 
 1. The migration files are already generated in the `drizzle/` directory
 
@@ -381,9 +431,38 @@ To use a custom domain with your Cloudflare Pages deployment:
 **Cause**: Database migrations have not been run. The tables (`users`, `sessions`, `counters`) don't exist in the Neon database.
 
 **Solution**:
-1. **Run database migrations** (choose one method):
 
-   **Option A: Using Drizzle Push (Easiest)**
+**✨ Easiest Solution - Use the Migration API Endpoint (No local setup required!)**
+
+1. **Run migrations via the API** after deploying your app:
+   ```bash
+   # Without authentication (if no MIGRATION_SECRET set)
+   curl -X POST https://your-app.pages.dev/api/admin/migrate
+   
+   # Or with authentication (if MIGRATION_SECRET is set in Cloudflare env vars)
+   curl -X POST https://your-app.pages.dev/api/admin/migrate \
+     -H "Authorization: Bearer your-secret-token"
+   ```
+
+2. **Check if migration succeeded**:
+   ```bash
+   curl https://your-app.pages.dev/api/admin/migrate
+   ```
+   
+   Should return:
+   ```json
+   {
+     "migrated": true,
+     "tables": ["counters", "sessions", "users"],
+     "message": "All required tables exist"
+   }
+   ```
+
+3. **Try registration again** - it should work now!
+
+**Alternative Methods** (if you can run commands locally):
+
+   **Option A: Using Drizzle Push**
    ```bash
    # Set your Neon DATABASE_URL
    export DATABASE_URL="postgresql://user:pass@your-neon-host.neon.tech/dbname"
@@ -398,16 +477,7 @@ To use a custom domain with your Cloudflare Pages deployment:
    - Copy the contents of `drizzle/0000_perfect_meggan.sql` from this repository
    - Paste and run in the SQL Editor
 
-2. **Verify tables were created**:
-   - In Neon SQL Editor, run:
-     ```sql
-     SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
-     ```
-   - You should see: `users`, `sessions`, `counters`
-
-3. **If using separate preview database**, repeat the migration for the preview DATABASE_URL
-
-4. **Redeploy** or try registration again - it should work now
+**If using separate preview database**, repeat the migration for the preview environment URL.
 
 **Prevention**: Always run migrations after creating a new database or before first deployment.
 

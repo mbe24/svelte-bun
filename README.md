@@ -162,18 +162,21 @@ This application is optimized for deployment on Cloudflare Pages with automatic 
 **Quick Start:**
 1. Create a free [Neon](https://neon.tech/) PostgreSQL database
 2. Get your connection string from Neon dashboard
-3. **Run migrations** to create database tables:
-   ```bash
-   export DATABASE_URL="your-neon-connection-string"
-   npm run db:push
-   ```
-4. Follow the detailed guide in [docs/DEPLOY.md](docs/DEPLOY.md)
-5. **Critical**: Add `DATABASE_URL` to Cloudflare Pages Settings → Environment variables (both Production and Preview)
-6. Push to GitHub - automatic deployment via GitHub Actions
+3. Follow the detailed guide in [docs/DEPLOY.md](docs/DEPLOY.md)
+4. **Critical**: Add `DATABASE_URL` to Cloudflare Pages Settings → Environment variables (both Production and Preview)
+5. Push to GitHub - automatic deployment via GitHub Actions
+6. **Run migrations** using one of these methods:
+   - **Easiest**: Use the migration API endpoint (no local setup needed!)
+     ```bash
+     curl -X POST https://your-app.pages.dev/api/admin/migrate
+     ```
+   - **Local**: Run `npm run db:push` with DATABASE_URL set
+   - See [docs/DEPLOY.md](docs/DEPLOY.md) for all migration methods
 
 ⚠️ **Important**: 
 - Without DATABASE_URL configured, user registration and login will fail with a database configuration error.
 - Without running migrations, you'll get "relation 'users' does not exist" errors.
+- The migration API endpoint (`/api/admin/migrate`) is the easiest way to run migrations after deployment.
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for complete step-by-step instructions, including separate database setup for preview/production environments.
 
