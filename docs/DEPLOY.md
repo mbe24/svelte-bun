@@ -258,11 +258,101 @@ The database connection logic automatically detects the runtime environment:
 - [Turso](https://turso.tech/): Edge-hosted SQLite with global replication
 
 **To use Neon for Cloudflare Pages:**
+
+#### Option 1: Single Database (Simpler, for personal projects)
 1. Create a free account at [neon.tech](https://neon.tech/)
 2. Create a new PostgreSQL database
 3. Copy the connection string
 4. Add it as an environment variable `DATABASE_URL` in Cloudflare Pages Settings → Environment variables
-5. The application will automatically use the Neon serverless driver in the Cloudflare environment
+   - Select both **Production** and **Preview** environments
+5. Run database migrations (see below)
+6. The application will automatically use the Neon serverless driver in the Cloudflare environment
+
+#### Option 2: Separate Databases (Recommended, for production projects)
+
+For production applications, it's **highly recommended** to use separate databases for production and preview environments. This allows you to:
+- Test database schema changes in preview without affecting production
+- Experiment with data modifications safely
+- Keep production data isolated from test data
+
+**Setup:**
+1. Create a free account at [neon.tech](https://neon.tech/)
+2. Create **two** PostgreSQL databases:
+   - `svelte-bun-prod` (for production)
+   - `svelte-bun-preview` (for preview/staging)
+3. Copy both connection strings
+4. Add them as environment variables in Cloudflare Pages Settings → Environment variables:
+   - Add `DATABASE_URL` with production connection string
+     - Select **Production** environment only
+     - Click **Save**
+   - Add `DATABASE_URL` with preview connection string  
+     - Select **Preview** environment only
+     - Click **Save**
+5. Run migrations on both databases (see below)
+
+**Benefits of Separate Databases:**
+- ✅ Schema changes can be tested in preview before going to production
+- ✅ Pull requests with entity model changes won't affect production
+- ✅ Preview environments have isolated test data
+- ✅ Production data remains safe and pristine
+- ✅ You can experiment freely in preview environments
+
+**Cost:** Neon's free tier includes 10 branches (databases), so you can have multiple preview databases at no cost.
+
+### Running Database Migrations
+
+**Critical:** After creating your Neon database(s), you must run migrations to create the required tables.
+
+#### Method 1: Using Drizzle Studio (Recommended for beginners)
+
+1. Set your DATABASE_URL locally:
+   ```bash
+   export DATABASE_URL="postgresql://user:pass@your-neon-host.neon.tech/dbname"
+   ```
+
+2. Push the schema directly:
+   ```bash
+   npm run db:push
+   ```
+   
+   This will create all tables in your database.
+
+3. Repeat for preview database if using separate databases:
+   ```bash
+   export DATABASE_URL="postgresql://user:pass@your-neon-preview-host.neon.tech/dbname"
+   npm run db:push
+   ```
+
+#### Method 2: Using SQL Migrations (Recommended for production)
+
+1. The migration files are already generated in the `drizzle/` directory
+
+2. Connect to your Neon database using `psql` or the Neon SQL Editor:
+   - Go to your Neon project dashboard
+   - Click on **SQL Editor**
+   - Copy and paste the contents of `drizzle/0000_perfect_meggan.sql`
+   - Click **Run**
+
+3. Repeat for preview database if using separate databases
+
+4. Verify tables were created:
+   ```sql
+   \dt  -- in psql
+   -- or in Neon SQL Editor:
+   SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+   ```
+
+   You should see: `users`, `sessions`, `counters`
+
+#### Method 3: Automatic Migration Script
+
+You can create a migration script that runs on deployment. However, be careful with this approach as it requires your DATABASE_URL to be accessible during the build phase.
+
+**Important Notes:**
+- Migrations only need to be run once per database
+- If you add new tables or change the schema, run `npm run db:generate` to create new migration files
+- Always test schema changes in preview before applying to production
+- Neon databases support automatic schema branching - see [Neon branching docs](https://neon.tech/docs/guides/branching)
 
 
 ## Custom Domains
@@ -280,6 +370,47 @@ To use a custom domain with your Cloudflare Pages deployment:
 
 ## Troubleshooting
 
+### Registration/Login Fails with "relation \"users\" does not exist"
+
+**Error**: Error in Cloudflare Pages logs shows:
+```
+"message": "relation \"users\" does not exist",
+"code": "42P01"
+```
+
+**Cause**: Database migrations have not been run. The tables (`users`, `sessions`, `counters`) don't exist in the Neon database.
+
+**Solution**:
+1. **Run database migrations** (choose one method):
+
+   **Option A: Using Drizzle Push (Easiest)**
+   ```bash
+   # Set your Neon DATABASE_URL
+   export DATABASE_URL="postgresql://user:pass@your-neon-host.neon.tech/dbname"
+   
+   # Push schema to database
+   npm run db:push
+   ```
+
+   **Option B: Using SQL directly**
+   - Go to your Neon project dashboard
+   - Click **SQL Editor**
+   - Copy the contents of `drizzle/0000_perfect_meggan.sql` from this repository
+   - Paste and run in the SQL Editor
+
+2. **Verify tables were created**:
+   - In Neon SQL Editor, run:
+     ```sql
+     SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+     ```
+   - You should see: `users`, `sessions`, `counters`
+
+3. **If using separate preview database**, repeat the migration for the preview DATABASE_URL
+
+4. **Redeploy** or try registration again - it should work now
+
+**Prevention**: Always run migrations after creating a new database or before first deployment.
+
 ### Registration/Login Fails with "Database configuration error"
 
 **Error**: Users see "Database configuration error. Please contact the administrator." or "Registration failed" when trying to register or login on Cloudflare Pages.
@@ -291,7 +422,7 @@ To use a custom domain with your Cloudflare Pages deployment:
    - Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
    - Click **Workers & Pages** → Select your project (`svelte-bun`)
    - Go to **Settings** → **Environment variables**
-   - Ensure `DATABASE_URL` is set for both **Production** and **Preview** environments
+   - Ensure `DATABASE_URL` is set for both **Production** and **Preview** environments (or separately if using two databases)
    
 2. **Use a Neon database**:
    - Create a free account at [neon.tech](https://neon.tech/)
@@ -299,13 +430,7 @@ To use a custom domain with your Cloudflare Pages deployment:
    - Copy the connection string (it should start with `postgresql://`)
    - Add it as the value for `DATABASE_URL` in Cloudflare Pages
    
-3. **Verify database tables exist**:
-   - Connect to your Neon database using `psql` or a database client
-   - Run migrations to create the required tables:
-     ```sql
-     -- Or use drizzle-kit to push schema
-     npm run db:push
-     ```
+3. **Verify database tables exist** (see above troubleshooting section)
    
 4. **Check Cloudflare Pages logs**:
    - Go to your project in Cloudflare Dashboard

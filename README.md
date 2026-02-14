@@ -157,17 +157,25 @@ This application is optimized for deployment on Cloudflare Pages with automatic 
 **Prerequisites:**
 - ⚠️ **Required**: A Neon PostgreSQL database ([neon.tech](https://neon.tech/) - free tier available)
 - ⚠️ **Required**: DATABASE_URL configured in Cloudflare Pages environment variables
+- ⚠️ **Required**: Database migrations must be run to create tables
 
 **Quick Start:**
 1. Create a free [Neon](https://neon.tech/) PostgreSQL database
 2. Get your connection string from Neon dashboard
-3. Follow the detailed guide in [docs/DEPLOY.md](docs/DEPLOY.md)
-4. **Critical**: Add `DATABASE_URL` to Cloudflare Pages Settings → Environment variables (both Production and Preview)
-5. Push to GitHub - automatic deployment via GitHub Actions
+3. **Run migrations** to create database tables:
+   ```bash
+   export DATABASE_URL="your-neon-connection-string"
+   npm run db:push
+   ```
+4. Follow the detailed guide in [docs/DEPLOY.md](docs/DEPLOY.md)
+5. **Critical**: Add `DATABASE_URL` to Cloudflare Pages Settings → Environment variables (both Production and Preview)
+6. Push to GitHub - automatic deployment via GitHub Actions
 
-⚠️ **Important**: Without DATABASE_URL configured, user registration and login will fail with a database configuration error.
+⚠️ **Important**: 
+- Without DATABASE_URL configured, user registration and login will fail with a database configuration error.
+- Without running migrations, you'll get "relation 'users' does not exist" errors.
 
-See [docs/DEPLOY.md](docs/DEPLOY.md) for complete step-by-step instructions.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for complete step-by-step instructions, including separate database setup for preview/production environments.
 
 ## Docker Deployment
 
