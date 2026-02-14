@@ -307,6 +307,37 @@ This should be automatically handled by the `wrangler.toml` file in the reposito
 
 5. If issues persist, check if your code directly uses Node.js APIs that are not supported even with `nodejs_compat_populate_process_env`. Consider using edge-compatible alternatives.
 
+### Native Dependency Errors
+
+**Error**: Build or runtime errors related to native Node.js modules like `bcrypt`, `sqlite3`, `sharp`, or similar packages with C++ bindings
+
+**Example**:
+```
+Error: Cannot find module './node_modules/bcrypt/...'
+Module not found: Can't resolve 'bindings'
+```
+
+**Cause**: Native dependencies with C++ bindings don't work on Cloudflare Workers/Pages because they require native Node.js APIs that aren't available in the edge runtime.
+
+**Solution**:
+Replace native dependencies with pure JavaScript alternatives:
+
+**Common replacements:**
+- `bcrypt` → `bcryptjs` (pure JS password hashing)
+- `sqlite3` → `@libsql/client` or Cloudflare D1 (edge-compatible SQLite)
+- `sharp` → Cloudflare's Image Resizing API
+- `canvas` → Consider server-side rendering alternatives or client-side canvas
+- `postgres` → Use `@neondatabase/serverless` or HTTP-based PostgreSQL clients
+
+**This project uses:**
+- ✅ `bcryptjs` instead of `bcrypt` for password hashing
+- ⚠️ `postgres` package - Consider migrating to `@neondatabase/serverless` or Cloudflare D1 for edge deployment
+
+**Note**: The `postgres` package may have connection issues on Cloudflare Workers due to the edge runtime's networking model. For production edge deployment, consider using:
+- [Neon serverless driver](https://neon.tech/docs/serverless/serverless-driver) - HTTP-based PostgreSQL with edge support
+- [Cloudflare D1](https://developers.cloudflare.com/d1/) - Cloudflare's native SQLite database
+- [Turso](https://turso.tech/) - Edge-hosted SQLite with LibSQL
+
 ### Deployment Works but Site Doesn't Load
 
 **Error**: Deployment succeeds but the site shows errors or doesn't load

@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { db } from '$lib/db';
 import { users, sessions } from '$lib/db/schema';
