@@ -34,14 +34,14 @@ jobs:
         run: npm run build
       
       - name: Copy wrangler.toml to deployment directory
-        run: cp wrangler.toml .svelte-kit/cloudflare/
+        run: cp wrangler.toml dist/
       
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .svelte-kit/cloudflare --project-name=svelte-bun
+          command: pages deploy dist --project-name=svelte-bun
 
   deploy-preview:
     name: Deploy Preview
@@ -69,11 +69,11 @@ jobs:
         run: npm run build
       
       - name: Copy wrangler.toml to deployment directory
-        run: cp wrangler.toml .svelte-kit/cloudflare/
+        run: cp wrangler.toml dist/
       
       - name: Deploy to Cloudflare Pages (Preview)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .svelte-kit/cloudflare --project-name=svelte-bun --branch=${{ github.head_ref }}
+          command: pages deploy dist --project-name=svelte-bun --branch=${{ github.head_ref }}
