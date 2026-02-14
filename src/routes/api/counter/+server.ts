@@ -1,13 +1,15 @@
 import type { RequestHandler } from './$types';
-import { db } from '$lib/db';
+import { getDb } from '$lib/db';
 import { counters } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { json } from '@sveltejs/kit';
 
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, platform }) => {
 	if (!locals.userId) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
+
+	const db = getDb(platform?.env);
 
 	const [counter] = await db
 		.select()
@@ -27,10 +29,12 @@ export const GET: RequestHandler = async ({ locals }) => {
 	return json({ value: counter.value });
 };
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request, locals, platform }) => {
 	if (!locals.userId) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
+
+	const db = getDb(platform?.env);
 
 	const { action } = await request.json();
 

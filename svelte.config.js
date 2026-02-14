@@ -1,9 +1,14 @@
-import adapter from '@sveltejs/adapter-node';
+import adapter from '@sveltejs/adapter-cloudflare';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	kit: {
-		adapter: adapter()
+		adapter: adapter({
+			// Add Node.js compatibility for built-in modules
+			platformProxy: {
+				configPath: 'wrangler.toml'
+			}
+		})
 	}
 };
 

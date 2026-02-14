@@ -18,16 +18,17 @@
 		"test:e2e": "playwright test"
 	},
 	"dependencies": {
-		"@types/bcrypt": "^5.0.2",
-		"bcrypt": "^5.1.1",
+		"bcryptjs": "^2.4.3",
 		"drizzle-orm": "^0.37.0",
 		"postgres": "^3.4.5"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.51.0",
+		"@sveltejs/adapter-cloudflare": "^7.2.7",
 		"@sveltejs/adapter-node": "^5.5.3",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@types/bcryptjs": "^2.4.6",
 		"@types/bun": "latest",
 		"drizzle-kit": "^0.31.0",
 		"svelte": "^5.49.2",
