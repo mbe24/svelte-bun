@@ -16,11 +16,12 @@ function isCloudflareWorker(): boolean {
  * 
  * When running on Cloudflare Workers/Pages (edge runtime):
  * - Uses Neon serverless driver with HTTP-based connections (no TCP)
- * - Creates a new connection per request (stateless)
+ * - Creates a new Pool per request (Neon handles connection pooling server-side)
+ * - Neon's serverless driver is optimized for edge functions with sub-50ms cold starts
  * 
  * When running locally (Node.js/Bun):
  * - Uses postgres-js with traditional TCP connections
- * - Connection pooling is handled by postgres-js
+ * - Connection pooling is handled by postgres-js automatically
  */
 export function getDb(env?: { DATABASE_URL?: string }) {
 	// For Cloudflare Workers, env will be provided via platform.env
@@ -35,8 +36,13 @@ export function getDb(env?: { DATABASE_URL?: string }) {
 	if (isCloudflareWorker()) {
 		// Neon serverless driver for edge runtime
 		// Disable WebSocket support as it's not available in Cloudflare Workers
-		neonConfig.webSocketConstructor = undefined as any;
+		// This is the recommended way per Neon documentation for edge environments
+		if (typeof neonConfig.webSocketConstructor !== 'undefined') {
+			neonConfig.webSocketConstructor = undefined as any;
+		}
 		
+		// Create a new Pool per request - Neon handles connection pooling server-side
+		// This is the recommended pattern for serverless/edge environments
 		const client = new Pool({ connectionString });
 		return drizzleNeon(client, { schema });
 	} else {

@@ -60,6 +60,8 @@ export async function createUser(username: string, password: string, env?: { DAT
 	const db = getDb(env);
 	const hashedPassword = await hashPassword(password);
 	
+	// Note: Using .returning() without arguments for compatibility with both
+	// postgres-js and neon-serverless drivers. Both return the full row.
 	const [user] = await db
 		.insert(users)
 		.values({
