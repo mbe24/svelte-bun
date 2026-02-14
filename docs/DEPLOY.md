@@ -178,7 +178,13 @@ The deployment workflow is defined in `.github/workflows/deploy.yml`:
 
 ## Environment Variables
 
-If your application requires environment variables (like `DATABASE_URL`), you need to configure them in Cloudflare Pages:
+The application uses platform-specific environment variable handling:
+- **Local development**: Uses `process.env` from Node.js
+- **Cloudflare Workers**: Uses `platform.env` from SvelteKit's request event
+
+### For Cloudflare Pages Runtime
+
+If your application requires environment variables (like `DATABASE_URL`), configure them in Cloudflare Pages:
 
 1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
 2. Click **Workers & Pages**
@@ -191,8 +197,18 @@ If your application requires environment variables (like `DATABASE_URL`), you ne
    - Choose environment: **Production** and/or **Preview**
    - Click **Save**
 
-**Note**: For this application, you'll likely need:
-- `DATABASE_URL`: PostgreSQL connection string (consider using Cloudflare D1 or a serverless database like Neon or Supabase)
+**Note**: Environment variables configured in Cloudflare Pages are available at runtime via `event.platform.env` in your SvelteKit application.
+
+### For GitHub Actions Build
+
+The GitHub Actions workflow uses `process.env` during the build step. If your build requires environment variables:
+
+1. Go to your GitHub repository
+2. Click **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add your variables (e.g., `DATABASE_URL`)
+
+**Important**: The `DATABASE_URL` secret is already configured in the GitHub Actions workflow for the build step. The application code uses lazy database initialization to defer connection until request time, where it accesses `platform.env` in Cloudflare Workers.
 
 ### Database Considerations for Cloudflare Pages
 

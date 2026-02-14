@@ -8,7 +8,13 @@ declare global {
 		}
 		// interface PageData {}
 		// interface PageState {}
-		// interface Platform {}
+		// Define Platform interface for Cloudflare Workers compatibility
+		interface Platform {
+			env?: {
+				DATABASE_URL?: string;
+				// Add other environment variables as needed
+			};
+		}
 	}
 }
 
