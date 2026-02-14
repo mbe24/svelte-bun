@@ -41,6 +41,14 @@ export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 			name: error?.name,
 			stack: error?.stack
 		});
+		
+		// Provide helpful error message for missing DATABASE_URL
+		if (error?.message?.includes('DATABASE_URL')) {
+			return json({ 
+				error: 'Database configuration error. Please contact the administrator.' 
+			}, { status: 500 });
+		}
+		
 		return json({ error: 'Registration failed' }, { status: 500 });
 	}
 };

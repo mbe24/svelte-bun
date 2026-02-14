@@ -31,6 +31,10 @@ The project includes a `wrangler.toml` file with the compatibility flag specific
 
 1. A Cloudflare account (free tier is sufficient)
 2. Admin access to the GitHub repository
+3. **A Neon PostgreSQL database** (required for user authentication)
+   - Create a free account at [neon.tech](https://neon.tech/)
+   - Create a new PostgreSQL database
+   - Keep the connection string handy (you'll need it for Step 3c)
 
 ### Step 1: Create a Cloudflare Account
 
@@ -86,6 +90,27 @@ After creating the project, you must enable Node.js compatibility to avoid deplo
 7. Click **Save**
 
 This enables Node.js built-in modules (`fs`, `path`, `crypto`, etc.) required by the application dependencies. The `node:` prefix in imports (e.g., `import { randomBytes } from 'node:crypto'`) works with this compatibility flag.
+
+### Step 3c: Configure DATABASE_URL Environment Variable (Critical!)
+
+**This step is REQUIRED for the application to work.** Without the DATABASE_URL, user registration and login will fail.
+
+1. In the Cloudflare Dashboard, ensure you're in your project (`svelte-bun`)
+2. Click on **Settings** tab
+3. Scroll down to **Environment variables** section
+4. Click **Add variable**
+5. Enter the following:
+   - **Variable name**: `DATABASE_URL`
+   - **Value**: Your Neon PostgreSQL connection string
+     - Example: `postgresql://user:password@ep-cool-name-12345.us-east-2.aws.neon.tech/neondb?sslmode=require`
+     - Get this from your [Neon dashboard](https://console.neon.tech/)
+   - **Environment**: Select both **Production** and **Preview**
+6. Click **Save**
+
+**Important Notes**:
+- The connection string must be from a Neon database or another PostgreSQL provider that supports HTTP connections
+- Traditional PostgreSQL servers (that only support TCP) will NOT work on Cloudflare Workers/Pages
+- Make sure to run database migrations before first use (see Database Considerations section below)
 
 ### Step 4: Create a Cloudflare API Token
 
@@ -254,6 +279,40 @@ To use a custom domain with your Cloudflare Pages deployment:
 8. Wait for DNS propagation (usually a few minutes)
 
 ## Troubleshooting
+
+### Registration/Login Fails with "Database configuration error"
+
+**Error**: Users see "Database configuration error. Please contact the administrator." or "Registration failed" when trying to register or login on Cloudflare Pages.
+
+**Cause**: The `DATABASE_URL` environment variable is not configured in Cloudflare Pages, or the database connection is failing.
+
+**Solution**:
+1. **Verify DATABASE_URL is configured**:
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Click **Workers & Pages** → Select your project (`svelte-bun`)
+   - Go to **Settings** → **Environment variables**
+   - Ensure `DATABASE_URL` is set for both **Production** and **Preview** environments
+   
+2. **Use a Neon database**:
+   - Create a free account at [neon.tech](https://neon.tech/)
+   - Create a new PostgreSQL database
+   - Copy the connection string (it should start with `postgresql://`)
+   - Add it as the value for `DATABASE_URL` in Cloudflare Pages
+   
+3. **Verify database tables exist**:
+   - Connect to your Neon database using `psql` or a database client
+   - Run migrations to create the required tables:
+     ```sql
+     -- Or use drizzle-kit to push schema
+     npm run db:push
+     ```
+   
+4. **Check Cloudflare Pages logs**:
+   - Go to your project in Cloudflare Dashboard
+   - Click **View logs** on a recent deployment
+   - Look for detailed error messages that might indicate connection issues
+
+**Note**: The application requires a PostgreSQL database that supports HTTP connections (like Neon). Traditional PostgreSQL servers that only support TCP will not work in Cloudflare Workers/Pages.
 
 ### Project Not Found Error (Code 8000007)
 
