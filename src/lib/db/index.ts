@@ -30,6 +30,6 @@ export function getDb(env?: { DATABASE_URL?: string }) {
 	return _db;
 }
 
-// For backward compatibility with existing code in local development
-// This will only work in Node.js environments, not in Cloudflare Workers
-export const db = typeof process !== 'undefined' ? getDb() : null as any;
+// Export the db connection for backward compatibility
+// Note: This will be null in Cloudflare Workers - always use getDb(env) instead
+export const db = _db;
