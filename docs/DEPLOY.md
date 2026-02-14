@@ -303,57 +303,80 @@ For production applications, it's **highly recommended** to use separate databas
 
 **Critical:** After creating your Neon database(s), you must run migrations to create the required tables.
 
-#### Method 1: Using the Migration API Endpoint (Easiest - No Local Setup Required!)
+#### Method 1: Using the Web UI (Easiest! ⭐ RECOMMENDED)
 
-This is the **recommended method** if you cannot run migrations locally or don't have command-line access.
+This is the **easiest method** - no command line or curl needed!
 
 1. **Deploy your application** to Cloudflare Pages (push to GitHub)
 
-2. **Optional but Recommended**: Add a migration secret for security
-   - Go to Cloudflare Pages → Your Project → Settings → Environment variables
-   - Add `MIGRATION_SECRET` with a random value (e.g., `my-secret-token-12345`)
-   - Select both **Production** and **Preview** environments
-   - Click **Save**
-
-3. **Run the migration** by making an HTTP request to your deployed app:
-
-   **Without authentication** (if no MIGRATION_SECRET is set):
-   ```bash
-   curl -X POST https://your-app.pages.dev/api/admin/migrate
+2. **Visit the migration page** in your browser:
    ```
-
-   **With authentication** (if MIGRATION_SECRET is set):
-   ```bash
-   curl -X POST https://your-app.pages.dev/api/admin/migrate \
-     -H "Authorization: Bearer your-secret-token-here"
+   https://your-app.pages.dev/api/admin/migrate
    ```
+   
+   Replace `your-app.pages.dev` with your actual Cloudflare Pages URL.
+   
+   **Example for your preview:** `https://96963ecc.svelte-bun.pages.dev/api/admin/migrate`
 
-   **For preview deployments**:
-   ```bash
-   curl -X POST https://your-preview-url.pages.dev/api/admin/migrate \
-     -H "Authorization: Bearer your-secret-token-here"
-   ```
+3. **Click the "Run Database Migration" button**
+   
+   You'll see a nice web interface showing:
+   - Current migration status
+   - A button to run migrations
+   - Real-time feedback
 
-4. **Check migration status**:
-   ```bash
-   curl https://your-app.pages.dev/api/admin/migrate
-   ```
+4. **That's it!** The page will refresh and show "✅ Database Ready"
 
-   Expected response when successful:
-   ```json
-   {
-     "migrated": true,
-     "tables": ["counters", "sessions", "users"],
-     "message": "All required tables exist"
-   }
-   ```
+5. **If using separate preview database**, visit the preview URL and run migration there too
+
+**Optional Security:**
+- You can add `MIGRATION_SECRET` in Cloudflare Pages → Settings → Environment variables
+- If set, you'll need to enter it on the migration page
+
+**Screenshot of what you'll see:**
+- Before migration: Yellow warning box with "⚠️ Migration Required"
+- After migration: Green success box with "✅ Database Ready"
+
+#### Method 2: Using curl/API (For automation)
+
+If you prefer command line or want to automate:
+
+**Without authentication** (if no MIGRATION_SECRET is set):
+```bash
+curl -X POST https://your-app.pages.dev/api/admin/migrate
+```
+
+**With authentication** (if MIGRATION_SECRET is set):
+```bash
+curl -X POST https://your-app.pages.dev/api/admin/migrate \
+  -H "Authorization: Bearer your-secret-token-here"
+```
+
+**For preview deployments**:
+```bash
+curl -X POST https://your-preview-url.pages.dev/api/admin/migrate \
+  -H "Authorization: Bearer your-secret-token-here"
+```
+
+**Check migration status**:
+```bash
+curl https://your-app.pages.dev/api/admin/migrate
+```
+
+Expected response when successful:
+```json
+{
+  "migrated": true,
+  "tables": ["counters", "sessions", "users"],
+  "message": "All required tables exist"
+}
+```
 
 **Notes:**
 - The migration endpoint is **idempotent** - safe to run multiple times
 - Tables are created with `CREATE TABLE IF NOT EXISTS`, so existing tables won't be affected
-- You can also visit the URL in your browser to run migrations via GET/POST
 
-#### Method 2: Using Drizzle Studio (If you can run commands locally)
+#### Method 3: Using Drizzle Studio (If you can run commands locally)
 
 1. Set your DATABASE_URL locally:
    ```bash
@@ -430,31 +453,45 @@ To use a custom domain with your Cloudflare Pages deployment:
 
 **Cause**: Database migrations have not been run. The tables (`users`, `sessions`, `counters`) don't exist in the Neon database.
 
-**Solution**:
+**Solution:**
 
-**✨ Easiest Solution - Use the Migration API Endpoint (No local setup required!)**
+**🎯 EASIEST FIX - Just visit this URL in your browser:**
 
-1. **Run migrations via the API** after deploying your app:
-   ```bash
-   # Without authentication (if no MIGRATION_SECRET set)
-   curl -X POST https://your-app.pages.dev/api/admin/migrate
-   
-   # Or with authentication (if MIGRATION_SECRET is set in Cloudflare env vars)
-   curl -X POST https://your-app.pages.dev/api/admin/migrate \
-     -H "Authorization: Bearer your-secret-token"
-   ```
+```
+https://your-app.pages.dev/api/admin/migrate
+```
 
-2. **Check if migration succeeded**:
-   ```bash
-   curl https://your-app.pages.dev/api/admin/migrate
-   ```
-   
-   Should return:
-   ```json
-   {
-     "migrated": true,
-     "tables": ["counters", "sessions", "users"],
-     "message": "All required tables exist"
+Replace `your-app.pages.dev` with your actual URL (e.g., `96963ecc.svelte-bun.pages.dev`).
+
+**What you'll see:**
+1. A nice web page showing migration status
+2. A big button that says "▶ Run Database Migration"
+3. Click it and wait a few seconds
+4. Page refreshes showing "✅ Database Ready"
+5. Done! Try registration again - it will work now!
+
+**Alternative - Using curl:**
+
+```bash
+# Without authentication (if no MIGRATION_SECRET set)
+curl -X POST https://your-app.pages.dev/api/admin/migrate
+
+# Or with authentication (if MIGRATION_SECRET is set in Cloudflare env vars)
+curl -X POST https://your-app.pages.dev/api/admin/migrate \
+  -H "Authorization: Bearer your-secret-token"
+```
+
+**Check if migration succeeded:**
+```bash
+curl https://your-app.pages.dev/api/admin/migrate
+```
+
+Should return:
+```json
+{
+  "migrated": true,
+  "tables": ["counters", "sessions", "users"],
+  "message": "All required tables exist"
    }
    ```
 
