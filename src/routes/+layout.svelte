@@ -1,9 +1,17 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
-	import { getPostHogClient } from '$lib/posthog-client';
+	import { initPostHogClient, getPostHogClient } from '$lib/posthog-client';
+	import { onMount } from 'svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
+
+	// Initialize PostHog client on mount with data from server
+	onMount(() => {
+		if (browser && data?.posthog?.apiKey) {
+			initPostHogClient(data.posthog.apiKey, data.posthog.host);
+		}
+	});
 
 	// Track page views when route changes
 	$effect(() => {

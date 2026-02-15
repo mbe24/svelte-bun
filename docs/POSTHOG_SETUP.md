@@ -44,17 +44,16 @@ Add the following to your `.env` file:
 ```bash
 # PostHog Configuration (for both server and client-side tracking)
 # PostHog API keys are safe to expose publicly - they're designed for browser use
-# The PUBLIC_ prefix makes them available in both server and client code
-PUBLIC_POSTHOG_API_KEY=phc_your_actual_api_key_here
-PUBLIC_POSTHOG_HOST=https://app.posthog.com
+POSTHOG_API_KEY=phc_your_actual_api_key_here
+POSTHOG_HOST=https://app.posthog.com
 ```
 
 **Note:** 
 - Replace `phc_your_actual_api_key_here` with your actual PostHog Project API Key
-- PostHog API keys are designed to be public (used in browsers), so it's safe to use PUBLIC_ prefix
+- PostHog API keys are designed to be public (used in browsers), so it's safe to use them
 - If using PostHog EU cloud, use `https://eu.posthog.com` as the host
 - If using self-hosted PostHog, use your instance URL
-- The PUBLIC_ prefix is a SvelteKit convention that makes variables available to both server and client code
+- The server automatically passes these to the client for browser-side tracking
 
 #### For Cloudflare Workers Deployment
 
@@ -63,10 +62,10 @@ PUBLIC_POSTHOG_HOST=https://app.posthog.com
 3. Navigate to **Settings → Environment variables**
 4. Add the following variables for both **Production** and **Preview** environments:
    
-   - **Variable name:** `PUBLIC_POSTHOG_API_KEY`
+   - **Variable name:** `POSTHOG_API_KEY`
    - **Value:** Your PostHog Project API Key (e.g., `phc_...`)
    
-   - **Variable name:** `PUBLIC_POSTHOG_HOST` (optional)
+   - **Variable name:** `POSTHOG_HOST` (optional)
    - **Value:** `https://app.posthog.com` (or your custom host)
 
 5. Save the variables

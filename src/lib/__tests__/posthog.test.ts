@@ -41,8 +41,8 @@ describe('PostHog utilities', () => {
 
 		test('should return PostHog client when API key is provided in env', () => {
 			const env = {
-				PUBLIC_POSTHOG_API_KEY: 'test_api_key_env',
-				PUBLIC_POSTHOG_HOST: 'https://app.posthog.com'
+				POSTHOG_API_KEY: 'test_api_key_env',
+				POSTHOG_HOST: 'https://app.posthog.com'
 			};
 			const client = getPostHog(env);
 			
@@ -51,7 +51,7 @@ describe('PostHog utilities', () => {
 
 		test('should use default host when not provided', () => {
 			const env = {
-				PUBLIC_POSTHOG_API_KEY: 'test_api_key_default'
+				POSTHOG_API_KEY: 'test_api_key_default'
 			};
 			const client = getPostHog(env);
 			
@@ -60,7 +60,7 @@ describe('PostHog utilities', () => {
 
 		test('should return same instance on multiple calls', () => {
 			const env = {
-				PUBLIC_POSTHOG_API_KEY: 'test_api_key_multiple'
+				POSTHOG_API_KEY: 'test_api_key_multiple'
 			};
 			const client1 = getPostHog(env);
 			const client2 = getPostHog(env);

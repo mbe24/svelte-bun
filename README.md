@@ -124,9 +124,8 @@ To enable analytics, logging, and exception tracking with PostHog:
 ```bash
 # PostHog tracking (both server and client-side)
 # PostHog API keys are safe to expose publicly - they're designed for browser use
-# The PUBLIC_ prefix makes them available to both server and client code in SvelteKit
-PUBLIC_POSTHOG_API_KEY=your_posthog_api_key_here
-PUBLIC_POSTHOG_HOST=https://app.posthog.com
+POSTHOG_API_KEY=your_posthog_api_key_here
+POSTHOG_HOST=https://app.posthog.com
 ```
 
 This enables:

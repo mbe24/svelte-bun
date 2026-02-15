@@ -1,15 +1,7 @@
 import type { HandleClientError } from '@sveltejs/kit';
-import { initPostHogClient, logException } from '$lib/posthog-client';
+import { logException } from '$lib/posthog-client';
 
-// Initialize PostHog on the client side
-if (typeof window !== 'undefined') {
-	const apiKey = import.meta.env.PUBLIC_POSTHOG_API_KEY;
-	const host = import.meta.env.PUBLIC_POSTHOG_HOST;
-
-	if (apiKey) {
-		initPostHogClient(apiKey, host);
-	}
-}
+// PostHog is initialized in +layout.svelte using data from +layout.server.ts
 
 // Global error handler for client-side errors
 export const handleError: HandleClientError = ({ error, event }) => {
