@@ -1,7 +1,8 @@
-import { handleErrorWithSentry, init } from "@sentry/sveltekit";
+import * as Sentry from "@sentry/sveltekit";
+import { handleErrorWithSentry } from "@sentry/sveltekit";
 
 if (import.meta.env.SENTRY_DSN) {
-  init({
+  Sentry.init({
     dsn: import.meta.env.SENTRY_DSN,
     environment: import.meta.env.MODE || 'development',
     tracesSampleRate: 1.0,
