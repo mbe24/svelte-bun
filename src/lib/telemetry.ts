@@ -69,8 +69,8 @@ function getSeverityNumber(level: 'info' | 'warn' | 'error' | 'debug'): number {
  * - Falls back to US ingestion endpoint if mapping fails
  */
 function getOTLPEndpoint(posthogHost: string, posthogOtlpHost?: string): string {
-	// If OTLP host is explicitly set, use it
-	if (posthogOtlpHost) {
+	// If OTLP host is explicitly set and not empty, use it
+	if (posthogOtlpHost && posthogOtlpHost.length > 0) {
 		return posthogOtlpHost;
 	}
 	
@@ -98,8 +98,9 @@ function getOTLPEndpoint(posthogHost: string, posthogOtlpHost?: string): string 
 		// For self-hosted instances, assume OTLP is at the same host
 		return posthogHost;
 	} catch (e) {
-		// If URL parsing fails, return as-is
-		return posthogHost;
+		console.warn('[PostHog Telemetry] Failed to parse PostHog host URL:', posthogHost, e);
+		// Fallback to US ingestion endpoint
+		return 'https://us.i.posthog.com';
 	}
 }
 
@@ -149,10 +150,10 @@ async function sendOTLPLogs(
 		});
 
 		if (!response.ok) {
-			console.error('Failed to send OTLP logs:', response.statusText);
+			console.error('[PostHog Telemetry] Failed to send logs to', `${otlpEndpoint}/v1/logs`, '- Status:', response.status, response.statusText);
 		}
 	} catch (error) {
-		console.error('Error sending OTLP logs:', error);
+		console.error('[PostHog Telemetry] Error sending logs:', error);
 	}
 }
 

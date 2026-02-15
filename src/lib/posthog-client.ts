@@ -17,7 +17,8 @@ export function initPostHogClient(apiKey: string, host?: string, otlpHost?: stri
 
 	posthogApiKey = apiKey;
 	posthogHost = host || 'https://app.posthog.com';
-	posthogOtlpHost = otlpHost || '';
+	// Only set posthogOtlpHost if it's explicitly provided and not an empty string
+	posthogOtlpHost = (otlpHost && otlpHost.length > 0) ? otlpHost : '';
 
 	posthog.init(apiKey, {
 		api_host: posthogHost,
@@ -61,8 +62,8 @@ export function getPostHogClient() {
  * - Falls back to US ingestion endpoint if mapping fails
  */
 function getOTLPEndpoint(posthogHost: string, posthogOtlpHost?: string): string {
-	// If OTLP host is explicitly set, use it
-	if (posthogOtlpHost) {
+	// If OTLP host is explicitly set and not empty, use it
+	if (posthogOtlpHost && posthogOtlpHost.length > 0) {
 		return posthogOtlpHost;
 	}
 	
@@ -90,8 +91,9 @@ function getOTLPEndpoint(posthogHost: string, posthogOtlpHost?: string): string 
 		// For self-hosted instances, assume OTLP is at the same host
 		return posthogHost;
 	} catch (e) {
-		// If URL parsing fails, return as-is
-		return posthogHost;
+		console.warn('Failed to parse PostHog host URL:', posthogHost, e);
+		// Fallback to US ingestion endpoint
+		return 'https://us.i.posthog.com';
 	}
 }
 
@@ -105,6 +107,12 @@ async function sendOTLPLogs(logs: any[]): Promise<void> {
 
 	try {
 		const otlpEndpoint = getOTLPEndpoint(posthogHost, posthogOtlpHost);
+		
+		// Debug logging to help diagnose endpoint issues
+		if (!otlpEndpoint || otlpEndpoint.length === 0) {
+			console.error('OTLP endpoint is empty. posthogHost:', posthogHost, 'posthogOtlpHost:', posthogOtlpHost);
+			return;
+		}
 		
 		const otlpPayload = {
 			resourceLogs: [
@@ -141,7 +149,7 @@ async function sendOTLPLogs(logs: any[]): Promise<void> {
 		});
 
 		if (!response.ok) {
-			console.error('Failed to send OTLP logs:', response.statusText);
+			console.error('Failed to send OTLP logs to', `${otlpEndpoint}/v1/logs`, '- Status:', response.status, response.statusText);
 		}
 	} catch (error) {
 		console.error('Error sending OTLP logs:', error);
