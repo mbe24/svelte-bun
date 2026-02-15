@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/sveltekit";
-import { handleErrorWithSentry } from "@sentry/sveltekit";
 
 if (import.meta.env.SENTRY_DSN) {
   Sentry.init({
@@ -15,4 +14,4 @@ if (import.meta.env.SENTRY_DSN) {
 }
 
 // Export Sentry error handler
-export const handleError = handleErrorWithSentry();
+export const handleError = Sentry.handleErrorWithSentry();
