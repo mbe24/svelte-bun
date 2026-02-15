@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 import { getUserByUsername, verifyPassword, createSession } from '$lib/auth';
 import { json } from '@sveltejs/kit';
-import { getPostHog } from '$lib/posthog';
+import { logServerException } from '$lib/posthog-otlp';
 
 export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 	try {
@@ -35,22 +35,16 @@ export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 
 		return json({ success: true });
 	} catch (error: any) {
-		// Log error to PostHog
-		const posthog = getPostHog(platform?.env);
-		if (posthog) {
-			posthog.capture({
-				distinctId: 'server',
-				event: 'server_exception',
-				properties: {
-					error_message: error?.message || String(error),
-					error_code: error?.code,
-					error_name: error?.name,
-					error_stack: error?.stack,
-					endpoint: '/api/auth/login',
-					method: 'POST'
-				}
-			});
-		}
+		// Log error to PostHog using OTLP
+		await logServerException(
+			error instanceof Error ? error : new Error(String(error)),
+			{
+				endpoint: '/api/auth/login',
+				method: 'POST',
+				error_code: error?.code || 'UNKNOWN',
+			},
+			platform?.env
+		);
 
 		// Log error details for debugging
 		console.error('Login error:', {

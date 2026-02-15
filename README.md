@@ -339,13 +339,19 @@ When configured, the application automatically logs all HTTP requests to PostHog
 - **Authentication Status**: Whether the request was authenticated
 - **User ID**: The ID of the authenticated user (if logged in)
 
+**Logs & Exceptions:**
+- **Exception Logging**: Both client and server exceptions are logged using OpenTelemetry Protocol (OTLP) format
+- **Custom Logs**: Use `logMessage()` and `logException()` functions to send logs via OTLP
+- **Logs Tab**: OTLP logs appear in PostHog's Logs tab (not Events tab)
+- **Events Tab**: HTTP requests and page views appear in Events tab
+
 **Configuration:**
 - Set `POSTHOG_API_KEY` and optionally `POSTHOG_HOST` in your environment variables
 - If these variables are not set, the application works normally without logging
 - Logging is performed asynchronously and does not affect request performance
 - Errors in logging are caught and logged to console without breaking requests
 
-**Event Format:**
+**Event Format (HTTP Requests):**
 ```javascript
 {
   distinctId: "user_123" or "ip_address" or "anonymous",
@@ -361,6 +367,9 @@ When configured, the application automatically logs all HTTP requests to PostHog
   }
 }
 ```
+
+**OTLP Log Format (Exceptions & Custom Logs):**
+Sent to PostHog's `/v1/logs` endpoint with Authorization header containing the API key.
 
 ## Testing
 

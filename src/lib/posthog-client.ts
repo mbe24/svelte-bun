@@ -2,6 +2,8 @@ import posthog from 'posthog-js';
 import { browser } from '$app/environment';
 
 let initialized = false;
+let posthogApiKey = '';
+let posthogHost = '';
 
 /**
  * Initialize PostHog client-side analytics
@@ -12,8 +14,11 @@ export function initPostHogClient(apiKey: string, host?: string): void {
 		return;
 	}
 
+	posthogApiKey = apiKey;
+	posthogHost = host || 'https://app.posthog.com';
+
 	posthog.init(apiKey, {
-		api_host: host || 'https://app.posthog.com',
+		api_host: posthogHost,
 		// Disable automatic pageview tracking - we'll handle it manually in +layout.svelte
 		capture_pageview: false,
 		capture_pageleave: true,
@@ -37,34 +42,144 @@ export function getPostHogClient() {
 }
 
 /**
- * Log an exception to PostHog
+ * Send logs to PostHog using OTLP format
  */
-export function logException(error: Error, context?: Record<string, any>): void {
-	if (!browser || !initialized) {
+async function sendOTLPLogs(logs: any[]): Promise<void> {
+	if (!browser || !initialized || !posthogApiKey) {
 		return;
 	}
 
-	posthog.capture('exception', {
-		error_message: error.message,
-		error_name: error.name,
-		error_stack: error.stack,
-		...context
-	});
+	try {
+		const otlpPayload = {
+			resourceLogs: [
+				{
+					resource: {
+						attributes: [
+							{
+								key: 'service.name',
+								value: {
+									stringValue: 'svelte-bun-app'
+								}
+							}
+						]
+					},
+					scopeLogs: [
+						{
+							scope: {
+								name: 'svelte-app'
+							},
+							logRecords: logs
+						}
+					]
+				}
+			]
+		};
+
+		const response = await fetch(`${posthogHost}/v1/logs`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${posthogApiKey}`
+			},
+			body: JSON.stringify(otlpPayload)
+		});
+
+		if (!response.ok) {
+			console.error('Failed to send OTLP logs:', response.statusText);
+		}
+	} catch (error) {
+		console.error('Error sending OTLP logs:', error);
+	}
 }
 
 /**
- * Log a custom message to PostHog
+ * Convert severity level to OTLP severity number
  */
-export function logMessage(level: 'info' | 'warn' | 'error' | 'debug', message: string, properties?: Record<string, any>): void {
+function getSeverityNumber(level: 'info' | 'warn' | 'error' | 'debug'): number {
+	switch (level) {
+		case 'debug':
+			return 5; // DEBUG
+		case 'info':
+			return 9; // INFO
+		case 'warn':
+			return 13; // WARN
+		case 'error':
+			return 17; // ERROR
+		default:
+			return 9; // INFO
+	}
+}
+
+/**
+ * Log an exception to PostHog using OTLP
+ */
+export async function logException(error: Error, context?: Record<string, any>): Promise<void> {
 	if (!browser || !initialized) {
 		return;
 	}
 
-	posthog.capture('log', {
-		level,
-		message,
-		...properties
-	});
+	const logRecord = {
+		timeUnixNano: String(Date.now() * 1000000),
+		severityNumber: 17, // ERROR
+		severityText: 'ERROR',
+		body: {
+			stringValue: error.message
+		},
+		attributes: [
+			{
+				key: 'exception.type',
+				value: {
+					stringValue: error.name
+				}
+			},
+			{
+				key: 'exception.message',
+				value: {
+					stringValue: error.message
+				}
+			},
+			{
+				key: 'exception.stacktrace',
+				value: {
+					stringValue: error.stack || ''
+				}
+			},
+			...(context ? Object.entries(context).map(([key, value]) => ({
+				key,
+				value: {
+					stringValue: String(value)
+				}
+			})) : [])
+		]
+	};
+
+	await sendOTLPLogs([logRecord]);
+}
+
+/**
+ * Log a custom message to PostHog using OTLP
+ */
+export async function logMessage(level: 'info' | 'warn' | 'error' | 'debug', message: string, properties?: Record<string, any>): Promise<void> {
+	if (!browser || !initialized) {
+		return;
+	}
+
+	const logRecord = {
+		timeUnixNano: String(Date.now() * 1000000),
+		severityNumber: getSeverityNumber(level),
+		severityText: level.toUpperCase(),
+		body: {
+			stringValue: message
+		},
+		attributes: properties ? Object.entries(properties).map(([key, value]) => ({
+			key,
+			value: {
+				stringValue: String(value)
+			}
+		})) : []
+	};
+
+	await sendOTLPLogs([logRecord]);
 }
 
 /**

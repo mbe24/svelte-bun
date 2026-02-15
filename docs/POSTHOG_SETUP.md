@@ -16,14 +16,22 @@ The application now automatically logs all HTTP requests to PostHog when configu
 - **Authentication Status**: Whether the request was authenticated
 - **User ID**: The ID of the authenticated user (if logged in)
 
+HTTP requests are logged as PostHog events for the **Events** tab.
+
 ### Client-Side Features
 The application also includes client-side PostHog integration for:
 
-- **Page View Tracking**: Automatically tracks page navigation
-- **Exception Logging**: Captures client-side errors and exceptions
-- **Custom Logs**: Log custom messages with different severity levels (info, warn, error, debug)
+- **Page View Tracking**: Automatically tracks page navigation (Events tab)
+- **Exception Logging**: Captures client-side errors and exceptions using OTLP (Logs tab)
+- **Custom Logs**: Log custom messages with different severity levels using OTLP (Logs tab)
 - **User Identification**: Identify users for better analytics
 - **Event Tracking**: Track custom events and user interactions
+
+### Logging Architecture
+
+- **HTTP Request Logging**: Uses PostHog events API (appears in Events tab)
+- **Exception & Custom Logs**: Uses OpenTelemetry Protocol (OTLP) format (appears in Logs tab)
+- **OTLP Format**: Sends logs to PostHog's `/v1/logs` endpoint with proper authorization header
 
 ## Setup Instructions
 
@@ -110,62 +118,55 @@ Automatically captures all HTTP requests:
 }
 ```
 
-### 2. Exception Logging
+### 2. Exception Logging (OTLP Format)
 
 **Client-Side Exceptions:**
-All uncaught errors are automatically logged via `hooks.client.ts`:
+All uncaught errors are automatically logged via `hooks.client.ts` using OpenTelemetry Protocol (OTLP):
 
-```javascript
-{
-  event: "exception",
-  properties: {
-    error_message: "Cannot read property 'x' of undefined",
-    error_name: "TypeError",
-    error_stack: "TypeError: Cannot read...",
-    url: "/counter",
-    route: "counter"
-  }
-}
-```
+The logs are sent to PostHog's `/v1/logs` endpoint with proper OTLP formatting, including:
+- Exception type, message, and stacktrace
+- Severity levels (ERROR for exceptions)
+- Timestamp in nanoseconds
+- Custom context attributes
 
 **Server-Side Exceptions:**
-Server errors are logged in catch blocks (see `/api/auth/login` for example):
+Server errors are logged in catch blocks (see `/api/auth/login` for example) using OTLP format:
 
-```javascript
-{
-  event: "server_exception",
-  properties: {
-    error_message: "Database connection failed",
-    error_code: "CONNECTION_ERROR",
-    error_name: "Error",
-    error_stack: "Error: Database...",
-    endpoint: "/api/auth/login",
-    method: "POST"
-  }
-}
+```typescript
+import { logServerException } from '$lib/posthog-otlp';
+
+await logServerException(
+  error,
+  {
+    endpoint: '/api/auth/login',
+    method: 'POST',
+    error_code: 'AUTH_FAILED'
+  },
+  platform?.env
+);
 ```
 
-### 3. Custom Logs
+### 3. Custom Logs (OTLP Format)
 
-You can log custom messages from your client-side code:
+You can log custom messages from your client-side code using OTLP:
 
 ```typescript
 import { logMessage, logException } from '$lib/posthog-client';
 
 // Log informational messages
-logMessage('info', 'User completed checkout', { 
+await logMessage('info', 'User completed checkout', { 
   order_id: '12345',
-  amount: 99.99 
+  amount: '99.99'
 });
 
 // Log warnings
-logMessage('warn', 'API rate limit approaching', { 
-  requests_remaining: 10 
+await logMessage('warn', 'API rate limit approaching', { 
+  requests_remaining: '10'
 });
 
 // Log errors
-logMessage('error', 'Payment failed', { 
-  error_code: 'CARD_DECLINED' 
+await logMessage('error', 'Payment failed', { 
+  error_code: 'CARD_DECLINED'
 });
 
 // Log exceptions with context
@@ -173,9 +174,9 @@ try {
   // ... your code
 } catch (error) {
   if (error instanceof Error) {
-    logException(error, { 
+    await logException(error, { 
       action: 'checkout',
-      step: 'payment' 
+      step: 'payment'
     });
   }
 }
