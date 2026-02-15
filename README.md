@@ -344,7 +344,7 @@ When configured, the application automatically logs all HTTP requests to PostHog
 - **Custom Logs**: Use `logMessage()` and `logException()` functions to send logs via OTLP
 - **Logs Tab**: OTLP logs appear in PostHog's Logs tab (not Events tab)
 - **Events Tab**: HTTP requests and page views appear in Events tab
-- **OTLP Endpoint**: Uses `${POSTHOG_HOST}/v1/logs` (e.g., `https://app.posthog.com/v1/logs` or `https://eu.posthog.com/v1/logs`)
+- **OTLP Endpoint**: Appends `/v1/logs` to your configured POSTHOG_HOST (e.g., `https://app.posthog.com/v1/logs` or `https://eu.posthog.com/v1/logs`)
 
 **Configuration:**
 - Set `POSTHOG_API_KEY` and optionally `POSTHOG_HOST` in your environment variables
