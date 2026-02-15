@@ -32,6 +32,7 @@ This project serves as a reference implementation for building modern web applic
 - **Build Tool**: Vite (Integrated in SvelteKit)
 - **Unit/Integration Testing**: Bun Test (Built-in)
 - **End-to-End Testing**: Playwright
+- **Analytics**: PostHog (optional, for HTTP request logging)
 - **Deployment**: Docker, Cloudflare Pages
 
 ## Features
@@ -44,6 +45,7 @@ This project serves as a reference implementation for building modern web applic
 - Automatic runtime detection for database drivers
 - Edge-compatible deployment (Cloudflare Pages)
 - Docker deployment with docker-compose
+- HTTP request logging with PostHog (optional)
 
 ## Screenshots
 
@@ -105,6 +107,21 @@ POSTGRES_PASSWORD=your_secure_password_here
 POSTGRES_DB=sveltekit_db
 DATABASE_URL=postgresql://postgres:your_secure_password_here@localhost:5432/sveltekit_db
 ```
+
+**Optional: PostHog Analytics**
+
+To enable HTTP request logging with PostHog:
+
+1. Sign up for a free account at [posthog.com](https://posthog.com/) or use a self-hosted instance
+2. Get your Project API Key from PostHog project settings
+3. Add to your `.env` file:
+
+```
+POSTHOG_API_KEY=your_posthog_api_key_here
+POSTHOG_HOST=https://app.posthog.com
+```
+
+For Cloudflare Workers deployment, add these as environment variables in your Cloudflare Pages settings.
 
 ⚠️ **Security Note:** Never commit the `.env` file to version control. It contains sensitive credentials and is already excluded via `.gitignore`.
 
@@ -290,6 +307,44 @@ svelte-bun/
 - `GET /api/counter` - Get current counter value (requires authentication)
 - `POST /api/counter` - Increment or decrement counter (requires authentication)
   - Body: `{ "action": "increment" | "decrement" }`
+
+## Analytics and Monitoring
+
+### PostHog HTTP Request Logging
+
+When configured, the application automatically logs all HTTP requests to PostHog with the following information:
+
+- **Request Method**: GET, POST, etc.
+- **Request Path**: The URL path accessed
+- **Status Code**: HTTP response status (200, 404, etc.)
+- **Response Time**: Duration of the request in milliseconds
+- **User Agent**: Browser/client information
+- **Referer**: Source of the request
+- **Authentication Status**: Whether the request was authenticated
+- **User ID**: The ID of the authenticated user (if logged in)
+
+**Configuration:**
+- Set `POSTHOG_API_KEY` and optionally `POSTHOG_HOST` in your environment variables
+- If these variables are not set, the application works normally without logging
+- Logging is performed asynchronously and does not affect request performance
+- Errors in logging are caught and logged to console without breaking requests
+
+**Event Format:**
+```javascript
+{
+  distinctId: "user_123" or "ip_address" or "anonymous",
+  event: "http_request",
+  properties: {
+    method: "GET",
+    path: "/api/counter",
+    status: 200,
+    duration_ms: 45,
+    user_agent: "Mozilla/5.0...",
+    authenticated: true,
+    user_id: 123
+  }
+}
+```
 
 ## Testing
 
