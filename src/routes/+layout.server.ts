@@ -12,7 +12,7 @@ export const load: LayoutServerLoad = async ({ platform, locals, route, isDataRe
 			POSTHOG_API_KEY?: string; 
 			POSTHOG_HOST?: string; 
 			POSTHOG_OTLP_HOST?: string;
-			POSTHOG_ENVIRONMENT?: string;
+			ENVIRONMENT?: string;
 			CF_PAGES_BRANCH?: string;
 		} | undefined;
 		const posthogApiKey = env?.POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.POSTHOG_API_KEY : undefined);
@@ -47,7 +47,7 @@ export const load: LayoutServerLoad = async ({ platform, locals, route, isDataRe
 			POSTHOG_API_KEY?: string; 
 			POSTHOG_HOST?: string; 
 			POSTHOG_OTLP_HOST?: string;
-			POSTHOG_ENVIRONMENT?: string;
+			ENVIRONMENT?: string;
 			CF_PAGES_BRANCH?: string;
 		} | undefined;
 		

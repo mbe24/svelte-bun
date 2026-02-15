@@ -29,11 +29,11 @@ On Cloudflare Pages, the environment is automatically detected from the `CF_PAGE
 
 ### Option 2: Explicit Environment Variable
 
-Set the `POSTHOG_ENVIRONMENT` environment variable to explicitly specify the environment:
+Set the `ENVIRONMENT` environment variable to explicitly specify the environment:
 
 ```bash
 # In .env or Cloudflare Pages environment variables
-POSTHOG_ENVIRONMENT=production
+ENVIRONMENT=production
 ```
 
 Supported values:
@@ -43,7 +43,7 @@ Supported values:
 - `development`
 - Any custom value you want
 
-**Priority**: `POSTHOG_ENVIRONMENT` takes precedence over `CF_PAGES_BRANCH` if both are set.
+**Priority**: `ENVIRONMENT` takes precedence over `CF_PAGES_BRANCH` if both are set.
 
 ### Option 3: Client-Side Detection
 
@@ -98,7 +98,7 @@ service.name != "svelte-bun-production"
 
 ### Server-Side (Priority Order)
 
-1. **POSTHOG_ENVIRONMENT** - If explicitly set, always use this value
+1. **ENVIRONMENT** - If explicitly set, always use this value
 2. **CF_PAGES_BRANCH** - For Cloudflare Pages:
    - `main` or `master` → `production`
    - Other branches → `preview`
@@ -134,7 +134,7 @@ service.name != "svelte-bun-production"
 
 ```bash
 # In Cloudflare Pages environment variables
-POSTHOG_ENVIRONMENT=staging
+ENVIRONMENT=staging
 
 # Logs will be tagged as "svelte-bun-staging"
 ```
@@ -145,7 +145,7 @@ POSTHOG_ENVIRONMENT=staging
 # In .env file
 POSTHOG_API_KEY=phc_your_key
 POSTHOG_HOST=https://app.posthog.com
-POSTHOG_ENVIRONMENT=development
+ENVIRONMENT=development
 
 # Logs will be tagged as "svelte-bun-development"
 ```
@@ -153,7 +153,7 @@ POSTHOG_ENVIRONMENT=development
 ## Best Practices
 
 1. **Use automatic detection** on Cloudflare Pages - it just works!
-2. **Set POSTHOG_ENVIRONMENT explicitly** for other hosting providers
+2. **Set ENVIRONMENT explicitly** for other hosting providers
 3. **Keep environment names consistent** across your organization
 4. **Create saved views** in PostHog for each environment
 5. **Set up alerts** specific to production environment
@@ -165,16 +165,16 @@ POSTHOG_ENVIRONMENT=development
 
 1. Check that environment variables are set in Cloudflare Pages settings
 2. Verify `CF_PAGES_BRANCH` is available (it should be automatic on Cloudflare Pages)
-3. Set `POSTHOG_ENVIRONMENT` explicitly if auto-detection isn't working
+3. Set `ENVIRONMENT` explicitly if auto-detection isn't working
 
 ### All logs showing as "development"
 
 This means:
-- No `POSTHOG_ENVIRONMENT` is set
+- No `ENVIRONMENT` is set
 - No `CF_PAGES_BRANCH` is detected
 - Not running on Cloudflare Pages
 
-**Solution**: Set `POSTHOG_ENVIRONMENT` environment variable explicitly.
+**Solution**: Set `ENVIRONMENT` environment variable explicitly.
 
 ### Want to use different naming convention
 
@@ -185,7 +185,7 @@ You can modify the `getServiceName()` function in:
 
 Example custom format:
 ```typescript
-function getServiceName(env?: { POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
+function getServiceName(env?: { ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
 	const environment = getEnvironmentName(env);
 	return `myapp-${environment}-logs`; // Custom format
 }

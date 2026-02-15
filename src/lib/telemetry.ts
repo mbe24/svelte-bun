@@ -54,15 +54,15 @@ function getSeverityNumber(level: 'info' | 'warn' | 'error' | 'debug'): number {
 /**
  * Determine the environment name for service identification
  * Priority:
- * 1. POSTHOG_ENVIRONMENT if explicitly set
+ * 1. ENVIRONMENT if explicitly set
  * 2. CF_PAGES_BRANCH for Cloudflare Pages (production, preview, or branch name)
  * 3. NODE_ENV if set
  * 4. Defaults to 'development'
  */
-function getEnvironmentName(env?: { POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
-	// Check explicit POSTHOG_ENVIRONMENT first
-	if (env?.POSTHOG_ENVIRONMENT) {
-		return env.POSTHOG_ENVIRONMENT;
+function getEnvironmentName(env?: { ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
+	// Check explicit ENVIRONMENT first
+	if (env?.ENVIRONMENT) {
+		return env.ENVIRONMENT;
 	}
 	
 	// For Cloudflare Pages, use CF_PAGES_BRANCH
@@ -88,7 +88,7 @@ function getEnvironmentName(env?: { POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANC
 /**
  * Get service name with environment suffix
  */
-function getServiceName(env?: { POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
+function getServiceName(env?: { ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
 	const environment = getEnvironmentName(env);
 	return `svelte-bun-${environment}`;
 }
@@ -155,7 +155,7 @@ async function sendOTLPLogs(
 	apiKey: string,
 	host: string,
 	otlpHost?: string,
-	env?: { POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
+	env?: { ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
 ): Promise<void> {
 	try {
 		const otlpEndpoint = getOTLPEndpoint(host, otlpHost);
@@ -209,7 +209,7 @@ async function sendOTLPLogs(
 /**
  * Get PostHog configuration from environment
  */
-function getPostHogConfig(env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): {
+function getPostHogConfig(env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): {
 	apiKey: string | undefined;
 	host: string;
 	otlpHost: string | undefined;
@@ -239,7 +239,7 @@ export async function logDatabaseQuery(
 		errorMessage?: string;
 		dbSystem?: string; // e.g., 'PostgreSQL', 'MySQL', 'SQLite'
 	},
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
 ): Promise<void> {
 	const { apiKey, host, otlpHost } = getPostHogConfig(env);
 	if (!apiKey) return;
@@ -291,7 +291,7 @@ export async function logExternalFetch(
 		success: boolean;
 		errorMessage?: string;
 	},
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
 ): Promise<void> {
 	const { apiKey, host, otlpHost } = getPostHogConfig(env);
 	if (!apiKey) return;
@@ -344,7 +344,7 @@ export async function logLoadFunction(
 		success: boolean;
 		errorMessage?: string;
 	},
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
 ): Promise<void> {
 	const { apiKey, host, otlpHost } = getPostHogConfig(env);
 	if (!apiKey) return;
@@ -395,7 +395,7 @@ export async function logAuthEvent(
 		errorMessage?: string;
 		metadata?: Record<string, string>;
 	},
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
 ): Promise<void> {
 	const { apiKey, host, otlpHost } = getPostHogConfig(env);
 	if (!apiKey) return;
@@ -443,7 +443,7 @@ export function wrapDatabaseQuery<T>(
 		sessionId?: string;
 		distinctId?: string;
 	},
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
 ): Promise<T> {
 	const startTime = Date.now();
 	
@@ -479,7 +479,7 @@ export async function trackedFetch(
 			sessionId?: string;
 			distinctId?: string;
 		};
-		env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string };
+		env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; ENVIRONMENT?: string; CF_PAGES_BRANCH?: string };
 	} = {}
 ): Promise<Response> {
 	const startTime = Date.now();

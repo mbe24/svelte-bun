@@ -21,7 +21,7 @@ declare global {
 				POSTHOG_API_KEY?: string;
 				POSTHOG_HOST?: string;
 				POSTHOG_OTLP_HOST?: string;
-				POSTHOG_ENVIRONMENT?: string;
+				ENVIRONMENT?: string;
 				CF_PAGES_BRANCH?: string; // Cloudflare Pages automatically sets this
 				// Add other environment variables as needed
 			};
