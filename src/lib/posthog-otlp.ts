@@ -9,8 +9,13 @@ function getOTLPEndpoint(host: string): string {
 	// PostHog OTLP ingestion endpoints
 	// https://app.posthog.com -> https://us.i.posthog.com
 	// https://eu.posthog.com -> https://eu.i.posthog.com
-	if (host && (host.includes('://eu.posthog.com') || host.startsWith('eu.posthog.com'))) {
-		return 'https://eu.i.posthog.com/v1/logs';
+	try {
+		const url = new URL(host);
+		if (url.hostname === 'eu.posthog.com') {
+			return 'https://eu.i.posthog.com/v1/logs';
+		}
+	} catch (e) {
+		// If URL parsing fails, fall back to default
 	}
 	return 'https://us.i.posthog.com/v1/logs';
 }
