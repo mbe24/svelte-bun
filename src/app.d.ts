@@ -12,8 +12,8 @@ declare global {
 		interface Platform {
 			env?: {
 				DATABASE_URL?: string;
-				POSTHOG_API_KEY?: string;
-				POSTHOG_HOST?: string;
+				PUBLIC_POSTHOG_API_KEY?: string;
+				PUBLIC_POSTHOG_HOST?: string;
 				// Add other environment variables as needed
 			};
 			context?: {

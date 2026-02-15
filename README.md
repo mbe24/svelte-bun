@@ -122,23 +122,21 @@ To enable analytics, logging, and exception tracking with PostHog:
 3. Add to your `.env` file:
 
 ```bash
-# Server-side tracking (HTTP requests, server exceptions)
-POSTHOG_API_KEY=your_posthog_api_key_here
-POSTHOG_HOST=https://app.posthog.com
-
-# Client-side tracking (logs, exceptions, page views, user events)
+# PostHog tracking (both server and client-side)
+# PostHog API keys are safe to expose publicly - they're designed for browser use
+# The PUBLIC_ prefix makes them available to both server and client code in SvelteKit
 PUBLIC_POSTHOG_API_KEY=your_posthog_api_key_here
 PUBLIC_POSTHOG_HOST=https://app.posthog.com
 ```
 
 This enables:
-- HTTP request logging
+- HTTP request logging (server-side)
 - Exception tracking (client & server)
 - Custom logs with `logMessage()` and `logException()`
 - Page view tracking
 - User identification
 
-For Cloudflare Workers deployment, add all these variables (including PUBLIC_ prefixed ones) in your Cloudflare Pages environment settings.
+For Cloudflare Workers deployment, add these variables in your Cloudflare Pages environment settings.
 
 See [docs/POSTHOG_SETUP.md](docs/POSTHOG_SETUP.md) for complete setup instructions and usage examples.
 

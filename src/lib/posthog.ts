@@ -21,10 +21,11 @@ export function initPostHog(apiKey: string, host?: string): PostHog {
  * Get PostHog client instance
  * @param env - Environment variables (optional, for Cloudflare Workers)
  */
-export function getPostHog(env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string }): PostHog | null {
+export function getPostHog(env?: { PUBLIC_POSTHOG_API_KEY?: string; PUBLIC_POSTHOG_HOST?: string }): PostHog | null {
 	// Try to get from environment variables
-	const apiKey = env?.POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.POSTHOG_API_KEY : undefined);
-	const host = env?.POSTHOG_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_HOST : undefined);
+	// Check PUBLIC_ prefixed variables first (SvelteKit convention)
+	const apiKey = env?.PUBLIC_POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.PUBLIC_POSTHOG_API_KEY : undefined);
+	const host = env?.PUBLIC_POSTHOG_HOST || (typeof process !== 'undefined' ? process.env.PUBLIC_POSTHOG_HOST : undefined);
 
 	if (!apiKey) {
 		return null;
