@@ -5,12 +5,13 @@ let initialized = false;
 let posthogApiKey = '';
 let posthogHost = '';
 let posthogOtlpHost = '';
+let environment = 'development'; // Default environment
 
 /**
  * Initialize PostHog client-side analytics
  * This should be called once on the client side
  */
-export function initPostHogClient(apiKey: string, host?: string, otlpHost?: string): void {
+export function initPostHogClient(apiKey: string, host?: string, otlpHost?: string, env?: string): void {
 	if (!browser || initialized) {
 		return;
 	}
@@ -19,6 +20,8 @@ export function initPostHogClient(apiKey: string, host?: string, otlpHost?: stri
 	posthogHost = host || 'https://app.posthog.com';
 	// Only set posthogOtlpHost if it's explicitly provided and not an empty string
 	posthogOtlpHost = (otlpHost && otlpHost.length > 0) ? otlpHost : '';
+	// Set environment - try to detect from hostname if not provided
+	environment = env || detectEnvironment();
 
 	posthog.init(apiKey, {
 		api_host: posthogHost,
@@ -32,6 +35,33 @@ export function initPostHogClient(apiKey: string, host?: string, otlpHost?: stri
 	});
 
 	initialized = true;
+}
+
+/**
+ * Detect environment from hostname
+ */
+function detectEnvironment(): string {
+	if (!browser) return 'development';
+	
+	const hostname = window.location.hostname;
+	
+	// Production domains
+	if (hostname === 'yourdomain.com' || hostname === 'www.yourdomain.com') {
+		return 'production';
+	}
+	
+	// Cloudflare Pages preview deployments
+	if (hostname.includes('.pages.dev')) {
+		return 'preview';
+	}
+	
+	// Local development
+	if (hostname === 'localhost' || hostname === '127.0.0.1') {
+		return 'development';
+	}
+	
+	// Default
+	return 'development';
 }
 
 /**
@@ -122,7 +152,7 @@ async function sendOTLPLogs(logs: any[]): Promise<void> {
 							{
 								key: 'service.name',
 								value: {
-									stringValue: 'svelte-bun-app'
+									stringValue: `svelte-bun-${environment}`
 								}
 							}
 						]

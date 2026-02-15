@@ -8,7 +8,13 @@ export const load: LayoutServerLoad = async ({ platform, locals, route, isDataRe
 	
 	try {
 		// Get PostHog configuration from environment variables
-		const env = platform?.env as { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string } | undefined;
+		const env = platform?.env as { 
+			POSTHOG_API_KEY?: string; 
+			POSTHOG_HOST?: string; 
+			POSTHOG_OTLP_HOST?: string;
+			POSTHOG_ENVIRONMENT?: string;
+			CF_PAGES_BRANCH?: string;
+		} | undefined;
 		const posthogApiKey = env?.POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.POSTHOG_API_KEY : undefined);
 		const posthogHost = env?.POSTHOG_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_HOST : undefined);
 		const posthogOtlpHost = env?.POSTHOG_OTLP_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_OTLP_HOST : undefined);
@@ -37,7 +43,13 @@ export const load: LayoutServerLoad = async ({ platform, locals, route, isDataRe
 		return result;
 	} catch (error) {
 		const duration = Date.now() - startTime;
-		const env = platform?.env as { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string } | undefined;
+		const env = platform?.env as { 
+			POSTHOG_API_KEY?: string; 
+			POSTHOG_HOST?: string; 
+			POSTHOG_OTLP_HOST?: string;
+			POSTHOG_ENVIRONMENT?: string;
+			CF_PAGES_BRANCH?: string;
+		} | undefined;
 		
 		await logLoadFunction(route.id || ROUTE_ID, duration, {
 			userId: locals.telemetryContext?.userId,

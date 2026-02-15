@@ -3,6 +3,48 @@
  */
 
 /**
+ * Determine the environment name for service identification
+ * Priority:
+ * 1. POSTHOG_ENVIRONMENT if explicitly set
+ * 2. CF_PAGES_BRANCH for Cloudflare Pages (production, preview, or branch name)
+ * 3. NODE_ENV if set
+ * 4. Defaults to 'development'
+ */
+function getEnvironmentName(env?: { POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
+	// Check explicit POSTHOG_ENVIRONMENT first
+	if (env?.POSTHOG_ENVIRONMENT) {
+		return env.POSTHOG_ENVIRONMENT;
+	}
+	
+	// For Cloudflare Pages, use CF_PAGES_BRANCH
+	// 'main' or 'master' branch -> 'production'
+	// Other branches -> 'preview'
+	if (env?.CF_PAGES_BRANCH) {
+		const branch = env.CF_PAGES_BRANCH;
+		if (branch === 'main' || branch === 'master') {
+			return 'production';
+		}
+		return 'preview';
+	}
+	
+	// Fallback to NODE_ENV if available
+	if (typeof process !== 'undefined' && process.env.NODE_ENV) {
+		return process.env.NODE_ENV;
+	}
+	
+	// Default to development
+	return 'development';
+}
+
+/**
+ * Get service name with environment suffix
+ */
+function getServiceName(env?: { POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
+	const environment = getEnvironmentName(env);
+	return `svelte-bun-${environment}`;
+}
+
+/**
  * Get OTLP ingestion endpoint
  * 
  * PostHog has two different API endpoints:
@@ -58,7 +100,7 @@ function getOTLPEndpoint(posthogHost: string, posthogOtlpHost?: string): string 
 /**
  * Send logs to PostHog using OTLP format
  */
-async function sendOTLPLogs(logs: any[], apiKey: string, host: string, otlpHost?: string): Promise<void> {
+async function sendOTLPLogs(logs: any[], apiKey: string, host: string, otlpHost?: string, env?: { POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): Promise<void> {
 	try {
 		const otlpEndpoint = getOTLPEndpoint(host, otlpHost);
 		
@@ -70,7 +112,7 @@ async function sendOTLPLogs(logs: any[], apiKey: string, host: string, otlpHost?
 							{
 								key: 'service.name',
 								value: {
-									stringValue: 'svelte-bun-server'
+									stringValue: getServiceName(env)
 								}
 			}
 						]
@@ -128,7 +170,7 @@ function getSeverityNumber(level: 'info' | 'warn' | 'error' | 'debug'): number {
 export async function logServerException(
 	error: Error,
 	context: Record<string, any>,
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
 ): Promise<void> {
 	const apiKey = env?.POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.POSTHOG_API_KEY : undefined);
 	const host = env?.POSTHOG_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_HOST : undefined) || 'https://app.posthog.com';
@@ -173,7 +215,7 @@ export async function logServerException(
 		]
 	};
 
-	await sendOTLPLogs([logRecord], apiKey, host, otlpHost);
+	await sendOTLPLogs([logRecord], apiKey, host, otlpHost, env);
 }
 
 /**
@@ -183,7 +225,7 @@ export async function logServerMessage(
 	level: 'info' | 'warn' | 'error' | 'debug',
 	message: string,
 	properties: Record<string, any>,
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string; POSTHOG_ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }
 ): Promise<void> {
 	const apiKey = env?.POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.POSTHOG_API_KEY : undefined);
 	const host = env?.POSTHOG_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_HOST : undefined) || 'https://app.posthog.com';
@@ -208,5 +250,5 @@ export async function logServerMessage(
 		}))
 	};
 
-	await sendOTLPLogs([logRecord], apiKey, host, otlpHost);
+	await sendOTLPLogs([logRecord], apiKey, host, otlpHost, env);
 }
