@@ -31,7 +31,10 @@ The application also includes client-side PostHog integration for:
 
 - **HTTP Request Logging**: Uses PostHog events API (appears in Events tab)
 - **Exception & Custom Logs**: Uses OpenTelemetry Protocol (OTLP) format (appears in Logs tab)
-- **OTLP Endpoint**: Appends `/v1/logs` to your configured POSTHOG_HOST (e.g., `https://app.posthog.com/v1/logs` or `https://eu.posthog.com/v1/logs`)
+- **OTLP Endpoint Mapping**: Automatically maps your POSTHOG_HOST to the correct OTLP ingestion endpoint:
+  - `https://app.posthog.com` → `https://us.i.posthog.com/v1/logs` (US region)
+  - `https://eu.posthog.com` → `https://eu.i.posthog.com/v1/logs` (EU region)
+  - Self-hosted instances use the provided host as-is
 - **OTLP Format**: Sends logs with proper Authorization Bearer header containing the API key
 
 

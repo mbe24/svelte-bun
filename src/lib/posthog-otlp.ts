@@ -3,10 +3,48 @@
  */
 
 /**
+ * Map PostHog dashboard URL to OTLP ingestion endpoint
+ * 
+ * PostHog's OTLP logs endpoint is at a different subdomain than the dashboard:
+ * - Dashboard: app.posthog.com or eu.posthog.com
+ * - OTLP Ingestion: us.i.posthog.com or eu.i.posthog.com
+ */
+function getOTLPEndpoint(posthogHost: string): string {
+	try {
+		const url = new URL(posthogHost);
+		const hostname = url.hostname.toLowerCase();
+		
+		// If already using ingestion endpoint, return as-is
+		if (hostname.includes('.i.posthog.com')) {
+			return posthogHost;
+		}
+		
+		// Map dashboard URLs to ingestion endpoints
+		if (hostname === 'eu.posthog.com' || hostname === 'app.eu.posthog.com') {
+			return 'https://eu.i.posthog.com';
+		}
+		
+		// Default to US ingestion endpoint
+		// Handles: app.posthog.com, posthog.com, and self-hosted
+		if (hostname === 'app.posthog.com' || hostname === 'posthog.com') {
+			return 'https://us.i.posthog.com';
+		}
+		
+		// For self-hosted instances, use the provided host as-is
+		return posthogHost;
+	} catch (e) {
+		// If URL parsing fails, return as-is
+		return posthogHost;
+	}
+}
+
+/**
  * Send logs to PostHog using OTLP format
  */
 async function sendOTLPLogs(logs: any[], apiKey: string, host: string): Promise<void> {
 	try {
+		const otlpEndpoint = getOTLPEndpoint(host);
+		
 		const otlpPayload = {
 			resourceLogs: [
 				{
@@ -32,7 +70,7 @@ async function sendOTLPLogs(logs: any[], apiKey: string, host: string): Promise<
 			]
 		};
 
-		const response = await fetch(`${host}/v1/logs`, {
+		const response = await fetch(`${otlpEndpoint}/v1/logs`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
