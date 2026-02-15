@@ -1,6 +1,8 @@
 import type { LayoutServerLoad } from './$types';
 import { logLoadFunction } from '$lib/telemetry';
 
+const ROUTE_ID = '/layout';
+
 export const load: LayoutServerLoad = async ({ platform, locals, route, isDataRequest }) => {
 	const startTime = Date.now();
 	
@@ -21,7 +23,7 @@ export const load: LayoutServerLoad = async ({ platform, locals, route, isDataRe
 
 		// Log load function performance
 		const duration = Date.now() - startTime;
-		await logLoadFunction(route.id || '/layout', duration, {
+		await logLoadFunction(route.id || ROUTE_ID, duration, {
 			userId: locals.telemetryContext?.userId,
 			sessionId: locals.telemetryContext?.sessionId,
 			distinctId: locals.telemetryContext?.distinctId,
@@ -35,7 +37,7 @@ export const load: LayoutServerLoad = async ({ platform, locals, route, isDataRe
 		const duration = Date.now() - startTime;
 		const env = platform?.env as { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string } | undefined;
 		
-		await logLoadFunction(route.id || '/layout', duration, {
+		await logLoadFunction(route.id || ROUTE_ID, duration, {
 			userId: locals.telemetryContext?.userId,
 			sessionId: locals.telemetryContext?.sessionId,
 			distinctId: locals.telemetryContext?.distinctId,

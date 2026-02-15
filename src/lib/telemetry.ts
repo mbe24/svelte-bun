@@ -130,6 +130,7 @@ export async function logDatabaseQuery(
 		rowCount?: number;
 		success: boolean;
 		errorMessage?: string;
+		dbSystem?: string; // e.g., 'PostgreSQL', 'MySQL', 'SQLite'
 	},
 	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string }
 ): Promise<void> {
@@ -144,7 +145,7 @@ export async function logDatabaseQuery(
 			stringValue: `Database ${queryType} on ${table} took ${durationMs}ms`
 		},
 		attributes: [
-			{ key: 'db.system', value: { stringValue: 'PostgreSQL' } },
+			{ key: 'db.system', value: { stringValue: options.dbSystem || 'PostgreSQL' } },
 			{ key: 'db.operation', value: { stringValue: queryType } },
 			{ key: 'db.table', value: { stringValue: table } },
 			{ key: 'duration_ms', value: { stringValue: String(durationMs) } },
