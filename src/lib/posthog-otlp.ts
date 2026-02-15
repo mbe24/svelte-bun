@@ -3,24 +3,6 @@
  */
 
 /**
- * Get the PostHog ingestion endpoint for OTLP logs
- */
-function getOTLPEndpoint(host: string): string {
-	// PostHog OTLP ingestion endpoints
-	// https://app.posthog.com -> https://us.i.posthog.com
-	// https://eu.posthog.com -> https://eu.i.posthog.com
-	try {
-		const url = new URL(host);
-		if (url.hostname === 'eu.posthog.com') {
-			return 'https://eu.i.posthog.com/v1/logs';
-		}
-	} catch (e) {
-		// If URL parsing fails, fall back to default
-	}
-	return 'https://us.i.posthog.com/v1/logs';
-}
-
-/**
  * Send logs to PostHog using OTLP format
  */
 async function sendOTLPLogs(logs: any[], apiKey: string, host: string): Promise<void> {
@@ -50,7 +32,7 @@ async function sendOTLPLogs(logs: any[], apiKey: string, host: string): Promise<
 			]
 		};
 
-		const response = await fetch(getOTLPEndpoint(host), {
+		const response = await fetch(`${host}/v1/logs`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
