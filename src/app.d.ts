@@ -5,6 +5,12 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			userId?: number;
+			telemetryContext?: {
+				userId?: number;
+				sessionId?: string;
+				distinctId?: string;
+				ipAddress?: string;
+			};
 		}
 		// interface PageData {}
 		// interface PageState {}
