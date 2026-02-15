@@ -2,20 +2,8 @@
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { getPostHogClient } from '$lib/posthog-client';
-	import { onMount } from 'svelte';
 
 	let { children } = $props();
-
-	// Track page views on navigation
-	onMount(() => {
-		if (browser) {
-			const posthog = getPostHogClient();
-			if (posthog) {
-				// Track initial page view
-				posthog.capture('$pageview');
-			}
-		}
-	});
 
 	// Track page views when route changes
 	$effect(() => {

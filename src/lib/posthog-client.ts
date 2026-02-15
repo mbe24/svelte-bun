@@ -14,8 +14,8 @@ export function initPostHogClient(apiKey: string, host?: string): void {
 
 	posthog.init(apiKey, {
 		api_host: host || 'https://app.posthog.com',
-		// Capture console logs
-		capture_pageview: true,
+		// Disable automatic pageview tracking - we'll handle it manually in +layout.svelte
+		capture_pageview: false,
 		capture_pageleave: true,
 		// Enable session recording (optional)
 		// session_recording: {
