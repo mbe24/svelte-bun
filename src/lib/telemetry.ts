@@ -140,7 +140,7 @@ async function sendOTLPLogs(
 			]
 		};
 
-		const response = await fetch(`${otlpEndpoint}/v1/logs`, {
+		const response = await fetch(`${otlpEndpoint}/i/v1/logs`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ async function sendOTLPLogs(
 		});
 
 		if (!response.ok) {
-			console.error('[PostHog Telemetry] Failed to send logs to', `${otlpEndpoint}/v1/logs`, '- Status:', response.status, response.statusText);
+			console.error('[PostHog Telemetry] Failed to send logs to', `${otlpEndpoint}/i/v1/logs`, '- Status:', response.status, response.statusText);
 		}
 	} catch (error) {
 		console.error('[PostHog Telemetry] Error sending logs:', error);

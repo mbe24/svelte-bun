@@ -155,7 +155,7 @@ Automatically captures all HTTP requests:
 **Client-Side Exceptions:**
 All uncaught errors are automatically logged via `hooks.client.ts` using OpenTelemetry Protocol (OTLP):
 
-The logs are sent to PostHog's `/v1/logs` endpoint with proper OTLP formatting, including:
+The logs are sent to PostHog's `/i/v1/logs` endpoint with proper OTLP formatting, including:
 - Exception type, message, and stacktrace
 - Severity levels (ERROR for exceptions)
 - Timestamp in nanoseconds
