@@ -1,10 +1,9 @@
 import type { Handle } from '@sveltejs/kit';
 import { validateSession } from '$lib/auth';
-import * as Sentry from "@sentry/sveltekit";
-import { handleErrorWithSentry } from "@sentry/sveltekit";
+import { handleErrorWithSentry, init } from "@sentry/sveltekit";
 
 if (process.env.SENTRY_DSN) {
-  Sentry.init({
+  init({
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: 1.0,
