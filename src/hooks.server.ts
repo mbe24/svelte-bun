@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import { validateSession } from '$lib/auth';
-import * as Sentry from "@sentry/bun";
+import * as Sentry from "@sentry/sveltekit";
 
 if (process.env.SENTRY_DSN) {
   Sentry.init({
