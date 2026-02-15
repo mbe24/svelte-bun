@@ -9,7 +9,7 @@
 	// Initialize PostHog client on mount with data from server
 	onMount(() => {
 		if (browser && data?.posthog?.apiKey) {
-			initPostHogClient(data.posthog.apiKey, data.posthog.host);
+			initPostHogClient(data.posthog.apiKey, data.posthog.host || undefined);
 		}
 	});
 
