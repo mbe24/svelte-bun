@@ -3,7 +3,7 @@ import { validateSession } from '$lib/auth';
 import * as Sentry from "@sentry/bun";
 
 Sentry.init({
-  dsn: "https://73abdd8a2b51bce475eb529f11fae4c3@o4510888874147840.ingest.de.sentry.io/4510888888238160",
+  dsn: process.env.SENTRY_DSN,
 });
 
 export const handle: Handle = async ({ event, resolve }) => {
