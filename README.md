@@ -45,7 +45,12 @@ This project serves as a reference implementation for building modern web applic
 - Automatic runtime detection for database drivers
 - Edge-compatible deployment (Cloudflare Pages)
 - Docker deployment with docker-compose
-- HTTP request logging with PostHog (optional)
+- PostHog analytics integration (optional):
+  - HTTP request logging
+  - Exception tracking (client & server)
+  - Custom logs and event tracking
+  - Page view tracking
+  - User identification
 
 ## Screenshots
 
@@ -110,18 +115,32 @@ DATABASE_URL=postgresql://postgres:your_secure_password_here@localhost:5432/svel
 
 **Optional: PostHog Analytics**
 
-To enable HTTP request logging with PostHog:
+To enable analytics, logging, and exception tracking with PostHog:
 
 1. Sign up for a free account at [posthog.com](https://posthog.com/) or use a self-hosted instance
 2. Get your Project API Key from PostHog project settings
 3. Add to your `.env` file:
 
-```
+```bash
+# Server-side tracking (HTTP requests, server exceptions)
 POSTHOG_API_KEY=your_posthog_api_key_here
 POSTHOG_HOST=https://app.posthog.com
+
+# Client-side tracking (logs, exceptions, page views, user events)
+PUBLIC_POSTHOG_API_KEY=your_posthog_api_key_here
+PUBLIC_POSTHOG_HOST=https://app.posthog.com
 ```
 
-For Cloudflare Workers deployment, add these as environment variables in your Cloudflare Pages settings.
+This enables:
+- HTTP request logging
+- Exception tracking (client & server)
+- Custom logs with `logMessage()` and `logException()`
+- Page view tracking
+- User identification
+
+For Cloudflare Workers deployment, add all these variables (including PUBLIC_ prefixed ones) in your Cloudflare Pages environment settings.
+
+See [docs/POSTHOG_SETUP.md](docs/POSTHOG_SETUP.md) for complete setup instructions and usage examples.
 
 ⚠️ **Security Note:** Never commit the `.env` file to version control. It contains sensitive credentials and is already excluded via `.gitignore`.
 
