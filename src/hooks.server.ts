@@ -29,6 +29,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			// Create a distinct ID for the request (use userId if available, otherwise IP or a session identifier)
 			const distinctId = userId ? `user_${userId}` : event.getClientAddress() || 'anonymous';
 			
+			// Capture the event
 			posthog.capture({
 				distinctId,
 				event: 'http_request',
@@ -43,6 +44,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 					user_id: userId || undefined
 				}
 			});
+
+			// For Cloudflare Workers, ensure events are flushed before response
+			// Use waitUntil if available to prevent event loss
+			if (event.platform?.context?.waitUntil) {
+				event.platform.context.waitUntil(posthog.flush());
+			}
 		}
 	} catch (error) {
 		// Silently fail if PostHog logging fails - don't break the request

@@ -16,6 +16,9 @@ declare global {
 				POSTHOG_HOST?: string;
 				// Add other environment variables as needed
 			};
+			context?: {
+				waitUntil(promise: Promise<any>): void;
+			};
 		}
 	}
 }

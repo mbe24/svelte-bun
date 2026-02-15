@@ -1,6 +1,7 @@
 import { PostHog } from 'posthog-node';
 
 let posthogClient: PostHog | null = null;
+let isInitializing = false;
 
 /**
  * Initialize PostHog client with API key and host
@@ -29,8 +30,11 @@ export function getPostHog(env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: stri
 		return null;
 	}
 
-	if (!posthogClient) {
+	// Use singleton pattern - return existing client if already initialized
+	if (!posthogClient && !isInitializing) {
+		isInitializing = true;
 		posthogClient = initPostHog(apiKey, host);
+		isInitializing = false;
 	}
 
 	return posthogClient;
@@ -43,5 +47,6 @@ export async function shutdownPostHog(): Promise<void> {
 	if (posthogClient) {
 		await posthogClient.shutdown();
 		posthogClient = null;
+		isInitializing = false;
 	}
 }
