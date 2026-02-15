@@ -31,7 +31,10 @@ The application also includes client-side PostHog integration for:
 
 - **HTTP Request Logging**: Uses PostHog events API (appears in Events tab)
 - **Exception & Custom Logs**: Uses OpenTelemetry Protocol (OTLP) format (appears in Logs tab)
-- **OTLP Format**: Sends logs to PostHog's `/v1/logs` endpoint with proper authorization header
+- **OTLP Endpoints**: 
+  - US: `https://us.i.posthog.com/v1/logs`
+  - EU: `https://eu.i.posthog.com/v1/logs`
+- **OTLP Format**: Sends logs with proper Authorization Bearer header containing the API key
 
 ## Setup Instructions
 
