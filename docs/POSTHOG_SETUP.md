@@ -29,13 +29,26 @@ The application also includes client-side PostHog integration for:
 
 ### Logging Architecture
 
-- **HTTP Request Logging**: Uses PostHog events API (appears in Events tab)
-- **Exception & Custom Logs**: Uses OpenTelemetry Protocol (OTLP) format (appears in Logs tab)
-- **OTLP Endpoint Mapping**: Automatically maps your POSTHOG_HOST to the correct OTLP ingestion endpoint:
-  - `https://app.posthog.com` → `https://us.i.posthog.com/v1/logs` (US region)
-  - `https://eu.posthog.com` → `https://eu.i.posthog.com/v1/logs` (EU region)
-  - Self-hosted instances use the provided host as-is
-- **OTLP Format**: Sends logs with proper Authorization Bearer header containing the API key
+PostHog has **two separate API endpoints** for different purposes:
+
+1. **Events API (Capture API)** - For HTTP requests, page views, custom events
+   - Appears in **Events tab**
+   - US Cloud: `https://app.posthog.com` or `https://us.posthog.com`
+   - EU Cloud: `https://eu.posthog.com`
+   - Configured via `POSTHOG_HOST` environment variable
+
+2. **OTLP Logs API** - For logs, exceptions, and telemetry signals
+   - Appears in **Logs tab**
+   - US Cloud: `https://us.i.posthog.com`
+   - EU Cloud: `https://eu.i.posthog.com`
+   - Configured via `POSTHOG_OTLP_HOST` environment variable (optional)
+
+**Important:** Both endpoints use the **same API key** (your Project API Key).
+
+**Automatic Endpoint Mapping:** If you don't set `POSTHOG_OTLP_HOST`, the application automatically derives it from `POSTHOG_HOST`:
+- `https://app.posthog.com` → `https://us.i.posthog.com`
+- `https://eu.posthog.com` → `https://eu.i.posthog.com`
+- Self-hosted instances use the provided host as-is
 
 
 ## Setup Instructions
@@ -46,7 +59,7 @@ The application also includes client-side PostHog integration for:
 2. Sign up for a free account (or use a self-hosted instance)
 3. Create a new project
 4. Navigate to Project Settings → Project API Key
-5. Copy your **Project API Key**
+5. Copy your **Project API Key** (starts with `phc_`)
 
 ### 2. Configure Environment Variables
 
@@ -55,17 +68,26 @@ The application also includes client-side PostHog integration for:
 Add the following to your `.env` file:
 
 ```bash
-# PostHog Configuration (for both server and client-side tracking)
-# PostHog API keys are safe to expose publicly - they're designed for browser use
+# PostHog API Key (same key for both Events and Logs APIs)
 POSTHOG_API_KEY=phc_your_actual_api_key_here
+
+# PostHog Events API Host (for HTTP requests, page views, custom events)
+# US: https://app.posthog.com or https://us.posthog.com
+# EU: https://eu.posthog.com
 POSTHOG_HOST=https://app.posthog.com
+
+# PostHog OTLP Logs API Host (for logs, exceptions, telemetry) - OPTIONAL
+# If not set, automatically derived from POSTHOG_HOST
+# US: https://us.i.posthog.com
+# EU: https://eu.i.posthog.com
+# POSTHOG_OTLP_HOST=https://us.i.posthog.com
 ```
 
-**Note:** 
+**Notes:** 
 - Replace `phc_your_actual_api_key_here` with your actual PostHog Project API Key
 - PostHog API keys are designed to be public (used in browsers), so it's safe to use them
-- If using PostHog EU cloud, use `https://eu.posthog.com` as the host
-- If using self-hosted PostHog, use your instance URL
+- The `POSTHOG_OTLP_HOST` is **optional** - if not provided, it's automatically derived from `POSTHOG_HOST`
+- Only set `POSTHOG_OTLP_HOST` explicitly if using a custom or self-hosted OTLP endpoint
 - The server automatically passes these to the client for browser-side tracking
 
 #### For Cloudflare Workers Deployment
@@ -78,11 +100,16 @@ POSTHOG_HOST=https://app.posthog.com
    - **Variable name:** `POSTHOG_API_KEY`
    - **Value:** Your PostHog Project API Key (e.g., `phc_...`)
    
-   - **Variable name:** `POSTHOG_HOST` (optional)
-   - **Value:** `https://app.posthog.com` (or your custom host)
+   - **Variable name:** `POSTHOG_HOST`
+   - **Value:** `https://app.posthog.com` (or `https://eu.posthog.com` for EU)
+   
+   - **Variable name:** `POSTHOG_OTLP_HOST` (OPTIONAL)
+   - **Value:** `https://us.i.posthog.com` (or `https://eu.i.posthog.com` for EU)
 
 5. Save the variables
 6. Redeploy your application for the changes to take effect
+
+**Note:** For Cloudflare Workers, you don't need to set `POSTHOG_OTLP_HOST` unless you have a custom setup. The automatic mapping from `POSTHOG_HOST` works correctly.
 
 ### 3. Verify the Setup
 

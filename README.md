@@ -125,15 +125,29 @@ To enable analytics, logging, and exception tracking with PostHog:
 # PostHog tracking (both server and client-side)
 # PostHog API keys are safe to expose publicly - they're designed for browser use
 POSTHOG_API_KEY=your_posthog_api_key_here
+
+# PostHog Events API Host (for HTTP requests, page views, custom events)
+# US: https://app.posthog.com or https://us.posthog.com
+# EU: https://eu.posthog.com
 POSTHOG_HOST=https://app.posthog.com
+
+# PostHog OTLP Logs API Host (for logs, exceptions, telemetry) - OPTIONAL
+# If not set, automatically derived from POSTHOG_HOST
+# US: https://us.i.posthog.com
+# EU: https://eu.i.posthog.com
+# POSTHOG_OTLP_HOST=https://us.i.posthog.com
 ```
 
+**Note:** The `POSTHOG_OTLP_HOST` is optional. If not provided, it will be automatically derived from `POSTHOG_HOST` (e.g., `app.posthog.com` maps to `us.i.posthog.com`).
+
 This enables:
-- HTTP request logging (server-side)
-- Exception tracking (client & server)
-- Custom logs with `logMessage()` and `logException()`
-- Page view tracking
+- HTTP request logging (server-side, Events tab)
+- Exception tracking (client & server, Logs tab)
+- Custom logs with `logMessage()` and `logException()` (Logs tab)
+- Page view tracking (Events tab)
 - User identification
+- Database & API latency tracking (Logs tab)
+- Security & auth event tracking (Logs tab)
 
 For Cloudflare Workers deployment, add these variables in your Cloudflare Pages environment settings.
 

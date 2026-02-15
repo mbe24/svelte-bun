@@ -3,13 +3,29 @@
  */
 
 /**
- * Map PostHog dashboard URL to OTLP ingestion endpoint
+ * Get OTLP ingestion endpoint
  * 
- * PostHog's OTLP logs endpoint is at a different subdomain than the dashboard:
- * - Dashboard: app.posthog.com or eu.posthog.com
- * - OTLP Ingestion: us.i.posthog.com or eu.i.posthog.com
+ * PostHog has two different API endpoints:
+ * 1. Events API (Capture API) - For HTTP requests, page views, custom events
+ *    - US: app.posthog.com or us.posthog.com
+ *    - EU: eu.posthog.com
+ * 
+ * 2. OTLP Logs API - For logs, exceptions, telemetry
+ *    - US: us.i.posthog.com
+ *    - EU: eu.i.posthog.com
+ * 
+ * This function:
+ * - Returns POSTHOG_OTLP_HOST if explicitly set
+ * - Otherwise, automatically maps POSTHOG_HOST to the correct OTLP endpoint
+ * - Falls back to US ingestion endpoint if mapping fails
  */
-function getOTLPEndpoint(posthogHost: string): string {
+function getOTLPEndpoint(posthogHost: string, posthogOtlpHost?: string): string {
+	// If OTLP host is explicitly set, use it
+	if (posthogOtlpHost) {
+		return posthogOtlpHost;
+	}
+	
+	// Otherwise, derive from posthogHost
 	try {
 		const url = new URL(posthogHost);
 		const hostname = url.hostname.toLowerCase();
@@ -19,18 +35,18 @@ function getOTLPEndpoint(posthogHost: string): string {
 			return posthogHost;
 		}
 		
-		// Map dashboard URLs to ingestion endpoints
+		// Map dashboard URLs to OTLP ingestion endpoints
 		if (hostname === 'eu.posthog.com' || hostname === 'app.eu.posthog.com') {
 			return 'https://eu.i.posthog.com';
 		}
 		
-		// Default to US ingestion endpoint
-		// Handles: app.posthog.com, posthog.com, and self-hosted
-		if (hostname === 'app.posthog.com' || hostname === 'posthog.com') {
+		// Default to US OTLP ingestion endpoint
+		// Handles: app.posthog.com, us.posthog.com, posthog.com
+		if (hostname === 'app.posthog.com' || hostname === 'us.posthog.com' || hostname === 'posthog.com') {
 			return 'https://us.i.posthog.com';
 		}
 		
-		// For self-hosted instances, use the provided host as-is
+		// For self-hosted instances, assume OTLP is at the same host
 		return posthogHost;
 	} catch (e) {
 		// If URL parsing fails, return as-is
@@ -41,9 +57,9 @@ function getOTLPEndpoint(posthogHost: string): string {
 /**
  * Send logs to PostHog using OTLP format
  */
-async function sendOTLPLogs(logs: any[], apiKey: string, host: string): Promise<void> {
+async function sendOTLPLogs(logs: any[], apiKey: string, host: string, otlpHost?: string): Promise<void> {
 	try {
-		const otlpEndpoint = getOTLPEndpoint(host);
+		const otlpEndpoint = getOTLPEndpoint(host, otlpHost);
 		
 		const otlpPayload = {
 			resourceLogs: [
@@ -111,10 +127,11 @@ function getSeverityNumber(level: 'info' | 'warn' | 'error' | 'debug'): number {
 export async function logServerException(
 	error: Error,
 	context: Record<string, any>,
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string }
 ): Promise<void> {
 	const apiKey = env?.POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.POSTHOG_API_KEY : undefined);
 	const host = env?.POSTHOG_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_HOST : undefined) || 'https://app.posthog.com';
+	const otlpHost = env?.POSTHOG_OTLP_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_OTLP_HOST : undefined);
 
 	if (!apiKey) {
 		return;
@@ -155,7 +172,7 @@ export async function logServerException(
 		]
 	};
 
-	await sendOTLPLogs([logRecord], apiKey, host);
+	await sendOTLPLogs([logRecord], apiKey, host, otlpHost);
 }
 
 /**
@@ -165,10 +182,11 @@ export async function logServerMessage(
 	level: 'info' | 'warn' | 'error' | 'debug',
 	message: string,
 	properties: Record<string, any>,
-	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string }
+	env?: { POSTHOG_API_KEY?: string; POSTHOG_HOST?: string; POSTHOG_OTLP_HOST?: string }
 ): Promise<void> {
 	const apiKey = env?.POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.POSTHOG_API_KEY : undefined);
 	const host = env?.POSTHOG_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_HOST : undefined) || 'https://app.posthog.com';
+	const otlpHost = env?.POSTHOG_OTLP_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_OTLP_HOST : undefined);
 
 	if (!apiKey) {
 		return;
@@ -189,5 +207,5 @@ export async function logServerMessage(
 		}))
 	};
 
-	await sendOTLPLogs([logRecord], apiKey, host);
+	await sendOTLPLogs([logRecord], apiKey, host, otlpHost);
 }

@@ -20,6 +20,7 @@ declare global {
 				DATABASE_URL?: string;
 				POSTHOG_API_KEY?: string;
 				POSTHOG_HOST?: string;
+				POSTHOG_OTLP_HOST?: string;
 				// Add other environment variables as needed
 			};
 			context?: {
