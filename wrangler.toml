@@ -2,3 +2,13 @@ name = "svelte-bun"
 pages_build_output_dir = "./dist"
 compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 compatibility_date = "2024-01-01"
+
+[observability.traces]
+enabled = true
+# Must match the destination name in the dashboard
+destinations = [ "sentry-traces" ]
+
+[observability.logs]
+enabled = true
+# Must match the destination name in the dashboard
+destinations = [ "sentry-logs" ]
