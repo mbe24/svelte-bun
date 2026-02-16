@@ -32,6 +32,7 @@ This project serves as a reference implementation for building modern web applic
 - **Build Tool**: Vite (Integrated in SvelteKit)
 - **Unit/Integration Testing**: Bun Test (Built-in)
 - **End-to-End Testing**: Playwright
+- **Analytics**: PostHog (optional, for HTTP request logging)
 - **Deployment**: Docker, Cloudflare Pages
 
 ## Features
@@ -44,6 +45,12 @@ This project serves as a reference implementation for building modern web applic
 - Automatic runtime detection for database drivers
 - Edge-compatible deployment (Cloudflare Pages)
 - Docker deployment with docker-compose
+- PostHog analytics integration (optional):
+  - HTTP request logging
+  - Exception tracking (client & server)
+  - Custom logs and event tracking
+  - Page view tracking
+  - User identification
 
 ## Screenshots
 
@@ -105,6 +112,46 @@ POSTGRES_PASSWORD=your_secure_password_here
 POSTGRES_DB=sveltekit_db
 DATABASE_URL=postgresql://postgres:your_secure_password_here@localhost:5432/sveltekit_db
 ```
+
+**Optional: PostHog Analytics**
+
+To enable analytics, logging, and exception tracking with PostHog:
+
+1. Sign up for a free account at [posthog.com](https://posthog.com/) or use a self-hosted instance
+2. Get your Project API Key from PostHog project settings
+3. Add to your `.env` file:
+
+```bash
+# PostHog tracking (both server and client-side)
+# PostHog API keys are safe to expose publicly - they're designed for browser use
+POSTHOG_API_KEY=your_posthog_api_key_here
+
+# PostHog Events API Host (for HTTP requests, page views, custom events)
+# US: https://app.posthog.com or https://us.posthog.com
+# EU: https://eu.posthog.com
+POSTHOG_HOST=https://app.posthog.com
+
+# PostHog OTLP Logs API Host (for logs, exceptions, telemetry) - OPTIONAL
+# If not set, automatically derived from POSTHOG_HOST
+# US: https://us.i.posthog.com
+# EU: https://eu.i.posthog.com
+# POSTHOG_OTLP_HOST=https://us.i.posthog.com
+```
+
+**Note:** The `POSTHOG_OTLP_HOST` is optional. If not provided, it will be automatically derived from `POSTHOG_HOST` (e.g., `app.posthog.com` maps to `us.i.posthog.com`).
+
+This enables:
+- HTTP request logging (server-side, Events tab)
+- Exception tracking (client & server, Logs tab)
+- Custom logs with `logMessage()` and `logException()` (Logs tab)
+- Page view tracking (Events tab)
+- User identification
+- Database & API latency tracking (Logs tab)
+- Security & auth event tracking (Logs tab)
+
+For Cloudflare Workers deployment, add these variables in your Cloudflare Pages environment settings.
+
+See [docs/POSTHOG_SETUP.md](docs/POSTHOG_SETUP.md) for complete setup instructions and usage examples.
 
 ⚠️ **Security Note:** Never commit the `.env` file to version control. It contains sensitive credentials and is already excluded via `.gitignore`.
 
@@ -290,6 +337,54 @@ svelte-bun/
 - `GET /api/counter` - Get current counter value (requires authentication)
 - `POST /api/counter` - Increment or decrement counter (requires authentication)
   - Body: `{ "action": "increment" | "decrement" }`
+
+## Analytics and Monitoring
+
+### PostHog HTTP Request Logging
+
+When configured, the application automatically logs all HTTP requests to PostHog with the following information:
+
+- **Request Method**: GET, POST, etc.
+- **Request Path**: The URL path accessed
+- **Status Code**: HTTP response status (200, 404, etc.)
+- **Response Time**: Duration of the request in milliseconds
+- **User Agent**: Browser/client information
+- **Referer**: Source of the request
+- **Authentication Status**: Whether the request was authenticated
+- **User ID**: The ID of the authenticated user (if logged in)
+
+**Logs & Exceptions:**
+- **Exception Logging**: Both client and server exceptions are logged using OpenTelemetry Protocol (OTLP) format
+- **Custom Logs**: Use `logMessage()` and `logException()` functions to send logs via OTLP
+- **Logs Tab**: OTLP logs appear in PostHog's Logs tab (not Events tab)
+- **Events Tab**: HTTP requests and page views appear in Events tab
+- **OTLP Endpoint**: Automatically maps your POSTHOG_HOST to the correct OTLP ingestion endpoint (`https://app.posthog.com` → `https://us.i.posthog.com/i/v1/logs`, `https://eu.posthog.com` → `https://eu.i.posthog.com/i/v1/logs`)
+
+**Configuration:**
+- Set `POSTHOG_API_KEY` and optionally `POSTHOG_HOST` in your environment variables
+- If these variables are not set, the application works normally without logging
+- Logging is performed asynchronously and does not affect request performance
+- Errors in logging are caught and logged to console without breaking requests
+
+**Event Format (HTTP Requests):**
+```javascript
+{
+  distinctId: "user_123" or "ip_address" or "anonymous",
+  event: "http_request",
+  properties: {
+    method: "GET",
+    path: "/api/counter",
+    status: 200,
+    duration_ms: 45,
+    user_agent: "Mozilla/5.0...",
+    authenticated: true,
+    user_id: 123
+  }
+}
+```
+
+**OTLP Log Format (Exceptions & Custom Logs):**
+Sent to PostHog's `/i/v1/logs` endpoint with Authorization header containing the API key.
 
 ## Testing
 

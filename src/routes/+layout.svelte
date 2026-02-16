@@ -1,5 +1,33 @@
 <script lang="ts">
-	let { children } = $props();
+	import { page } from '$app/stores';
+	import { browser } from '$app/environment';
+	import { initPostHogClient, getPostHogClient } from '$lib/posthog-client';
+	import { onMount } from 'svelte';
+
+	let { children, data } = $props();
+
+	// Initialize PostHog client on mount with data from server
+	onMount(() => {
+		if (browser && data?.posthog?.apiKey) {
+			initPostHogClient(
+				data.posthog.apiKey, 
+				data.posthog.host || undefined,
+				data.posthog.otlpHost || undefined
+			);
+		}
+	});
+
+	// Track page views when route changes
+	$effect(() => {
+		if (browser && $page.url) {
+			const posthog = getPostHogClient();
+			if (posthog) {
+				posthog.capture('$pageview', {
+					$current_url: $page.url.href
+				});
+			}
+		}
+	});
 </script>
 
 <svelte:head>

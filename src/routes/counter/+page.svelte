@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { logException, logMessage } from '$lib/posthog-client';
 
 	let counter = $state(0);
 	let loading = $state(true);
@@ -21,6 +22,9 @@
 			}
 		} catch (error) {
 			console.error('Failed to load counter:', error);
+			if (error instanceof Error) {
+				logException(error, { action: 'load_counter' });
+			}
 		} finally {
 			loading = false;
 		}
@@ -40,11 +44,15 @@
 			if (response.ok) {
 				const data = await response.json();
 				counter = data.value;
+				logMessage('info', 'Counter updated', { action, new_value: data.value });
 			} else {
 				goto('/login');
 			}
 		} catch (error) {
 			console.error('Failed to update counter:', error);
+			if (error instanceof Error) {
+				logException(error, { action: 'update_counter', counter_action: action });
+			}
 		} finally {
 			updating = false;
 		}
@@ -56,6 +64,9 @@
 			goto('/');
 		} catch (error) {
 			console.error('Logout failed:', error);
+			if (error instanceof Error) {
+				logException(error, { action: 'logout' });
+			}
 		}
 	}
 </script>
