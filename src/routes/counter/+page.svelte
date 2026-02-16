@@ -42,13 +42,6 @@
 	async function updateCounter(action: 'increment' | 'decrement') {
 		if (updating) return;
 		
-		// Clear any existing rate limit error
-		rateLimitError = '';
-		if (rateLimitTimeout) {
-			clearTimeout(rateLimitTimeout);
-			rateLimitTimeout = null;
-		}
-		
 		updating = true;
 		try {
 			const response = await fetch('/api/counter', {
@@ -61,6 +54,13 @@
 				const data = await response.json();
 				counter = data.value;
 				logMessage('info', 'Counter updated', { action, new_value: data.value });
+				
+				// Clear rate limit error on successful update
+				rateLimitError = '';
+				if (rateLimitTimeout) {
+					clearTimeout(rateLimitTimeout);
+					rateLimitTimeout = null;
+				}
 			} else if (response.status === 429) {
 				// Rate limit exceeded
 				const data = await response.json();
@@ -77,6 +77,9 @@
 				}
 				
 				// Auto-clear error after 10 seconds
+				if (rateLimitTimeout) {
+					clearTimeout(rateLimitTimeout);
+				}
 				rateLimitTimeout = setTimeout(() => {
 					rateLimitError = '';
 				}, 10000);
@@ -122,14 +125,12 @@
 				<button
 					class="counter-button decrement"
 					onclick={() => updateCounter('decrement')}
-					disabled={updating}
 				>
 					−
 				</button>
 				<button
 					class="counter-button increment"
 					onclick={() => updateCounter('increment')}
-					disabled={updating}
 				>
 					+
 				</button>
