@@ -69,6 +69,14 @@ describe('Rate limiting utilities', () => {
 			});
 			expect(ratelimit).not.toBeNull();
 		});
+
+		test('should return rate limiter when values have leading/trailing whitespace', () => {
+			const ratelimit = createRateLimiter({
+				UPSTASH_REDIS_REST_URL: '  https://test.upstash.io  ',
+				UPSTASH_REDIS_REST_TOKEN: '  test_token  '
+			});
+			expect(ratelimit).not.toBeNull();
+		});
 	});
 
 	describe('checkRateLimit', () => {
