@@ -10,15 +10,17 @@ export function createRateLimiter(env?: {
 	UPSTASH_REDIS_REST_TOKEN?: string;
 }) {
 	// Check if Upstash Redis is configured
-	// Treat empty strings as missing configuration
-	if (!env?.UPSTASH_REDIS_REST_URL || env.UPSTASH_REDIS_REST_URL?.trim() === '' ||
-	    !env?.UPSTASH_REDIS_REST_TOKEN || env.UPSTASH_REDIS_REST_TOKEN?.trim() === '') {
+	// Treat empty strings and missing values as unconfigured
+	const url = env?.UPSTASH_REDIS_REST_URL?.trim();
+	const token = env?.UPSTASH_REDIS_REST_TOKEN?.trim();
+	
+	if (!url || !token) {
 		return null;
 	}
 
 	const redis = new Redis({
-		url: env.UPSTASH_REDIS_REST_URL,
-		token: env.UPSTASH_REDIS_REST_TOKEN
+		url,
+		token
 	});
 
 	// Create a sliding window rate limiter: 3 requests per 10 seconds
