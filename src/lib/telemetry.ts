@@ -244,10 +244,14 @@ export async function logDatabaseQuery(
 	const { apiKey, host, otlpHost } = getPostHogConfig(env);
 	if (!apiKey) return;
 
+	const severity = options.success 
+		? (durationMs > 1000 ? 13 : 5) // WARN if slow (>1s), DEBUG if fast
+		: 17; // ERROR if failed
+	
 	const logRecord: OTLPLogRecord = {
 		timeUnixNano: String(Date.now() * 1000000),
-		severityNumber: options.success ? 9 : 17, // INFO or ERROR
-		severityText: options.success ? 'INFO' : 'ERROR',
+		severityNumber: severity,
+		severityText: severity === 5 ? 'DEBUG' : (severity === 13 ? 'WARN' : 'ERROR'),
 		body: {
 			stringValue: `Database ${queryType} on ${table} took ${durationMs}ms`
 		},
@@ -299,10 +303,14 @@ export async function logExternalFetch(
 	// Sanitize URL to remove sensitive parameters
 	const sanitizedUrl = url.split('?')[0];
 
+	const severity = options.success 
+		? (durationMs > 5000 ? 13 : 5) // WARN if slow (>5s), DEBUG if fast
+		: 17; // ERROR if failed
+	
 	const logRecord: OTLPLogRecord = {
 		timeUnixNano: String(Date.now() * 1000000),
-		severityNumber: options.success ? 9 : 17,
-		severityText: options.success ? 'INFO' : 'ERROR',
+		severityNumber: severity,
+		severityText: severity === 5 ? 'DEBUG' : (severity === 13 ? 'WARN' : 'ERROR'),
 		body: {
 			stringValue: `External ${method} to ${sanitizedUrl} took ${durationMs}ms`
 		},
@@ -349,10 +357,14 @@ export async function logLoadFunction(
 	const { apiKey, host, otlpHost } = getPostHogConfig(env);
 	if (!apiKey) return;
 
+	const severity = options.success 
+		? (durationMs > 500 ? 13 : 5) // WARN if slow (>500ms), DEBUG if fast
+		: 17; // ERROR if failed
+	
 	const logRecord: OTLPLogRecord = {
 		timeUnixNano: String(Date.now() * 1000000),
-		severityNumber: options.success ? 9 : 17,
-		severityText: options.success ? 'INFO' : 'ERROR',
+		severityNumber: severity,
+		severityText: severity === 5 ? 'DEBUG' : (severity === 13 ? 'WARN' : 'ERROR'),
 		body: {
 			stringValue: `Load function for ${routeId} took ${durationMs}ms (${options.cacheStatus})`
 		},
