@@ -30,10 +30,26 @@ describe('Rate limiting utilities', () => {
 			expect(ratelimit).toBeNull();
 		});
 
+		test('should return null when UPSTASH_REDIS_REST_URL is whitespace only', () => {
+			const ratelimit = createRateLimiter({
+				UPSTASH_REDIS_REST_URL: '   ',
+				UPSTASH_REDIS_REST_TOKEN: 'test_token'
+			});
+			expect(ratelimit).toBeNull();
+		});
+
 		test('should return null when UPSTASH_REDIS_REST_TOKEN is empty string', () => {
 			const ratelimit = createRateLimiter({
 				UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
 				UPSTASH_REDIS_REST_TOKEN: ''
+			});
+			expect(ratelimit).toBeNull();
+		});
+
+		test('should return null when UPSTASH_REDIS_REST_TOKEN is whitespace only', () => {
+			const ratelimit = createRateLimiter({
+				UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
+				UPSTASH_REDIS_REST_TOKEN: '   '
 			});
 			expect(ratelimit).toBeNull();
 		});
@@ -73,6 +89,14 @@ describe('Rate limiting utilities', () => {
 			const result = await checkRateLimit(1, {
 				UPSTASH_REDIS_REST_URL: '',
 				UPSTASH_REDIS_REST_TOKEN: ''
+			});
+			expect(result.success).toBe(true);
+		});
+
+		test('should allow requests when environment variables are whitespace only', async () => {
+			const result = await checkRateLimit(1, {
+				UPSTASH_REDIS_REST_URL: '   ',
+				UPSTASH_REDIS_REST_TOKEN: '   '
 			});
 			expect(result.success).toBe(true);
 		});
