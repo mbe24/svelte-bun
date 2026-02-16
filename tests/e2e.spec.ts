@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+// Timeout constants for async operations
+const API_RESPONSE_TIMEOUT = 35000; // 35s for slow API calls (telemetry, database)
+const ERROR_VISIBILITY_TIMEOUT = 5000; // 5s for error message to appear
+
 test.describe('Authentication Flow', () => {
 	const testUsername = `testuser_${Date.now()}`;
 	const testPassword = 'testpass123';
@@ -88,8 +92,8 @@ test.describe('Authentication Flow', () => {
 		await page.click('button[type="submit"]');
 
 		// Wait for loading state to complete and error to appear
-		await page.waitForSelector('button:has-text("Login")', { timeout: 35000 });
-		await expect(page.locator('.error')).toBeVisible({ timeout: 5000 });
+		await page.waitForSelector('button:has-text("Login")', { timeout: API_RESPONSE_TIMEOUT });
+		await expect(page.locator('.error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
 		await expect(page.locator('.error')).toContainText('Invalid credentials');
 	});
 
@@ -118,8 +122,8 @@ test.describe('Authentication Flow', () => {
 		await page.click('button[type="submit"]');
 
 		// Wait for loading state to complete and error to appear
-		await page.waitForSelector('button:has-text("Register")', { timeout: 35000 });
-		await expect(page.locator('.error')).toBeVisible({ timeout: 5000 });
+		await page.waitForSelector('button:has-text("Register")', { timeout: API_RESPONSE_TIMEOUT });
+		await expect(page.locator('.error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
 		await expect(page.locator('.error')).toContainText('Username already exists');
 	});
 });
