@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { logException, logMessage } from '$lib/posthog-client';
 
@@ -11,6 +11,13 @@
 
 	onMount(async () => {
 		await loadCounter();
+	});
+
+	onDestroy(() => {
+		// Clean up timeout to prevent memory leaks
+		if (rateLimitTimeout) {
+			clearTimeout(rateLimitTimeout);
+		}
 	});
 
 	async function loadCounter() {
