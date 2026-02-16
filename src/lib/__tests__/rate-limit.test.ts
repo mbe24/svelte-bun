@@ -22,6 +22,16 @@ describe('Rate limiting utilities', () => {
 			expect(ratelimit).toBeNull();
 		});
 
+		test('should return null when URL is set but token is undefined (CI scenario)', () => {
+			// This simulates the CI environment where URL is in wrangler.toml
+			// but token is not set in environment variables
+			const ratelimit = createRateLimiter({
+				UPSTASH_REDIS_REST_URL: 'https://deciding-bream-58216.upstash.io',
+				UPSTASH_REDIS_REST_TOKEN: undefined
+			});
+			expect(ratelimit).toBeNull();
+		});
+
 		test('should return null when UPSTASH_REDIS_REST_URL is empty string', () => {
 			const ratelimit = createRateLimiter({
 				UPSTASH_REDIS_REST_URL: '',
