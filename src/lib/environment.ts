@@ -18,7 +18,7 @@ export interface EnvironmentConfig {
  * 
  * Priority:
  * 1. ENVIRONMENT if explicitly set
- * 2. CF_PAGES_BRANCH for Cloudflare Pages (production, preview, or branch name)
+ * 2. CF_PAGES_BRANCH for Cloudflare Pages (production or branch name for preview)
  * 3. NODE_ENV if set
  * 4. Defaults to 'development'
  * 
@@ -33,13 +33,13 @@ export function getEnvironmentName(env?: EnvironmentConfig): string {
 	
 	// For Cloudflare Pages, use CF_PAGES_BRANCH
 	// 'main' or 'master' branch -> 'production'
-	// Other branches -> 'preview'
+	// Other branches -> use branch name directly (allows differentiating previews)
 	if (env?.CF_PAGES_BRANCH) {
 		const branch = env.CF_PAGES_BRANCH;
 		if (branch === 'main' || branch === 'master') {
 			return 'production';
 		}
-		return 'preview';
+		return branch;
 	}
 	
 	// Fallback to NODE_ENV if available
