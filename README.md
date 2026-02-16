@@ -40,6 +40,7 @@ This project serves as a reference implementation for building modern web applic
 - User registration with password hashing (bcryptjs)
 - User login with session management
 - Protected counter page (increment/decrement)
+- **Rate limiting for counter actions** (3 actions per 10 seconds using Upstash Redis)
 - Session-based authentication
 - PostgreSQL database with Drizzle ORM
 - Automatic runtime detection for database drivers
@@ -152,6 +153,29 @@ This enables:
 For Cloudflare Workers deployment, add these variables in your Cloudflare Pages environment settings.
 
 See [docs/POSTHOG_SETUP.md](docs/POSTHOG_SETUP.md) for complete setup instructions and usage examples.
+
+**Optional: Upstash Redis Rate Limiting**
+
+To enable rate limiting for counter actions (3 actions per 10 seconds):
+
+1. Sign up for a free account at [Upstash Console](https://console.upstash.com/)
+2. Create a new Redis database
+3. Get your REST URL and REST token
+4. Add to your `.env` file:
+
+```bash
+# Upstash Redis for rate limiting
+UPSTASH_REDIS_REST_URL=https://your-redis-instance.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_secret_token_here
+```
+
+For Cloudflare Pages deployment:
+- Add `UPSTASH_REDIS_REST_TOKEN` to Cloudflare Pages environment variables
+- Update `UPSTASH_REDIS_REST_URL` in `wrangler.toml`
+
+See [docs/UPSTASH_REDIS_SETUP.md](docs/UPSTASH_REDIS_SETUP.md) for complete setup instructions.
+
+**Note:** If Upstash Redis is not configured, the application will work normally without rate limiting.
 
 ⚠️ **Security Note:** Never commit the `.env` file to version control. It contains sensitive credentials and is already excluded via `.gitignore`.
 
