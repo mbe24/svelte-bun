@@ -1,5 +1,6 @@
-import { Redis } from '@upstash/redis';
+import { Redis } from '@upstash/redis/cloudflare';
 import { Ratelimit } from '@upstash/ratelimit';
+import { getEnvironmentName } from './environment';
 
 /**
  * Creates a rate limiter instance for counter actions
@@ -8,6 +9,8 @@ import { Ratelimit } from '@upstash/ratelimit';
 export function createRateLimiter(env?: {
 	UPSTASH_REDIS_REST_URL?: string;
 	UPSTASH_REDIS_REST_TOKEN?: string;
+	ENVIRONMENT?: string;
+	CF_PAGES_BRANCH?: string;
 }) {
 	// Check if Upstash Redis is configured
 	// Treat empty strings and missing values as unconfigured
@@ -18,17 +21,23 @@ export function createRateLimiter(env?: {
 		return null;
 	}
 
-	const redis = new Redis({
-		url,
-		token
+	// Use Cloudflare-optimized Redis client with fromEnv
+	// Pass only the required Redis credentials
+	const redis = Redis.fromEnv({
+		UPSTASH_REDIS_REST_URL: url,
+		UPSTASH_REDIS_REST_TOKEN: token
 	});
+
+	// Get environment name for prefix to avoid key collisions between deployments
+	const environment = getEnvironmentName(env);
+	const prefix = `@upstash/ratelimit/${environment}`;
 
 	// Create a sliding window rate limiter: 3 requests per 10 seconds
 	const ratelimit = new Ratelimit({
 		redis,
 		limiter: Ratelimit.slidingWindow(3, '10 s'),
 		analytics: true,
-		prefix: 'counter_action'
+		prefix
 	});
 
 	return ratelimit;
@@ -43,6 +52,8 @@ export async function checkRateLimit(
 	env?: {
 		UPSTASH_REDIS_REST_URL?: string;
 		UPSTASH_REDIS_REST_TOKEN?: string;
+		ENVIRONMENT?: string;
+		CF_PAGES_BRANCH?: string;
 	}
 ): Promise<{ success: boolean; reset?: number; remaining?: number }> {
 	const ratelimit = createRateLimiter(env);
