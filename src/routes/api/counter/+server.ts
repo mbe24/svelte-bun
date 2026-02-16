@@ -10,6 +10,8 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
+	// TypeScript narrowing: userId is guaranteed to be defined after the check
+	const userId = locals.userId;
 	const db = getDb(platform?.env);
 
 	// Wrap database query with telemetry logging
@@ -17,12 +19,12 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 		() => db
 			.select()
 			.from(counters)
-			.where(eq(counters.userId, locals.userId))
+			.where(eq(counters.userId, userId))
 			.limit(1),
 		'counters',
 		'SELECT',
 		{
-			userId: locals.userId,
+			userId,
 			sessionId: locals.telemetryContext?.sessionId,
 			distinctId: locals.telemetryContext?.distinctId
 		},
@@ -34,12 +36,12 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 		const [newCounter] = await wrapDatabaseQuery(
 			() => db
 				.insert(counters)
-				.values({ userId: locals.userId, value: 0 })
+				.values({ userId, value: 0 })
 				.returning(),
 			'counters',
 			'INSERT',
 			{
-				userId: locals.userId,
+				userId,
 				sessionId: locals.telemetryContext?.sessionId,
 				distinctId: locals.telemetryContext?.distinctId
 			},
@@ -56,6 +58,8 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
+	// TypeScript narrowing: userId is guaranteed to be defined after the check
+	const userId = locals.userId;
 	const db = getDb(platform?.env);
 
 	const { action } = await request.json();
@@ -65,7 +69,7 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 	}
 
 	const telemetryContext = {
-		userId: locals.userId,
+		userId,
 		sessionId: locals.telemetryContext?.sessionId,
 		distinctId: locals.telemetryContext?.distinctId
 	};
@@ -75,7 +79,7 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 		() => db
 			.select()
 			.from(counters)
-			.where(eq(counters.userId, locals.userId))
+			.where(eq(counters.userId, userId))
 			.limit(1),
 		'counters',
 		'SELECT',
@@ -87,7 +91,7 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 		[counter] = await wrapDatabaseQuery(
 			() => db
 				.insert(counters)
-				.values({ userId: locals.userId, value: 0 })
+				.values({ userId, value: 0 })
 				.returning(),
 			'counters',
 			'INSERT',
@@ -102,7 +106,7 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 		() => db
 			.update(counters)
 			.set({ value: newValue, updatedAt: new Date() })
-			.where(eq(counters.userId, locals.userId))
+			.where(eq(counters.userId, userId))
 			.returning(),
 		'counters',
 		'UPDATE',
