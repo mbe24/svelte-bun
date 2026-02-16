@@ -4,6 +4,7 @@ import { counters } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { json } from '@sveltejs/kit';
 import { wrapDatabaseQuery } from '$lib/telemetry';
+import { checkRateLimit } from '$lib/rate-limit';
 
 export const GET: RequestHandler = async ({ locals, platform }) => {
 	if (!locals.userId) {
@@ -60,6 +61,21 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 
 	// TypeScript narrowing: userId is guaranteed to be defined after the check
 	const userId = locals.userId;
+
+	// Check rate limit before processing the request
+	const rateLimitResult = await checkRateLimit(userId, platform?.env);
+	if (!rateLimitResult.success) {
+		return json(
+			{
+				error: 'Rate limit exceeded',
+				message: 'Too many actions. Please wait before trying again.',
+				reset: rateLimitResult.reset,
+				remaining: rateLimitResult.remaining
+			},
+			{ status: 429 }
+		);
+	}
+
 	const db = getDb(platform?.env);
 
 	const { action } = await request.json();

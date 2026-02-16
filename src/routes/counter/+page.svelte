@@ -1,14 +1,23 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { logException, logMessage } from '$lib/posthog-client';
 
 	let counter = $state(0);
 	let loading = $state(true);
 	let updating = $state(false);
+	let rateLimitError = $state('');
+	let rateLimitTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	onMount(async () => {
 		await loadCounter();
+	});
+
+	onDestroy(() => {
+		// Clean up timeout to prevent memory leaks
+		if (rateLimitTimeout) {
+			clearTimeout(rateLimitTimeout);
+		}
 	});
 
 	async function loadCounter() {
@@ -45,6 +54,35 @@
 				const data = await response.json();
 				counter = data.value;
 				logMessage('info', 'Counter updated', { action, new_value: data.value });
+				
+				// Clear rate limit error on successful update
+				rateLimitError = '';
+				if (rateLimitTimeout) {
+					clearTimeout(rateLimitTimeout);
+					rateLimitTimeout = null;
+				}
+			} else if (response.status === 429) {
+				// Rate limit exceeded
+				const data = await response.json();
+				rateLimitError = data.message || 'Too many actions. Please wait before trying again.';
+				
+				// Calculate seconds until reset
+				if (data.reset) {
+					const now = Date.now();
+					const resetTime = data.reset;
+					const waitSeconds = Math.ceil((resetTime - now) / 1000);
+					if (waitSeconds > 0) {
+						rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
+					}
+				}
+				
+				// Auto-clear error after 10 seconds
+				if (rateLimitTimeout) {
+					clearTimeout(rateLimitTimeout);
+				}
+				rateLimitTimeout = setTimeout(() => {
+					rateLimitError = '';
+				}, 10000);
 			} else {
 				goto('/login');
 			}
@@ -87,18 +125,20 @@
 				<button
 					class="counter-button decrement"
 					onclick={() => updateCounter('decrement')}
-					disabled={updating}
 				>
 					−
 				</button>
 				<button
 					class="counter-button increment"
 					onclick={() => updateCounter('increment')}
-					disabled={updating}
 				>
 					+
 				</button>
 			</div>
+
+			{#if rateLimitError}
+				<div class="error-message">{rateLimitError}</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -197,5 +237,16 @@
 
 	.increment:hover:not(:disabled) {
 		background: #229954;
+	}
+
+	.error-message {
+		margin-top: 1.5rem;
+		padding: 1rem;
+		background: #fee;
+		color: #c33;
+		border-radius: 0.5rem;
+		border: 1px solid #fcc;
+		font-size: 0.9rem;
+		font-weight: 500;
 	}
 </style>

@@ -1,0 +1,81 @@
+import { Redis } from '@upstash/redis/cloudflare';
+import { Ratelimit } from '@upstash/ratelimit';
+import { getEnvironmentName } from './environment';
+
+/**
+ * Creates a rate limiter instance for counter actions
+ * Configured to allow 3 requests per 10 seconds per user
+ */
+export function createRateLimiter(env?: {
+	UPSTASH_REDIS_REST_URL?: string;
+	UPSTASH_REDIS_REST_TOKEN?: string;
+	ENVIRONMENT?: string;
+	CF_PAGES_BRANCH?: string;
+}) {
+	// Check if Upstash Redis is configured
+	// Treat empty strings and missing values as unconfigured
+	const url = env?.UPSTASH_REDIS_REST_URL?.trim();
+	const token = env?.UPSTASH_REDIS_REST_TOKEN?.trim();
+	
+	if (!url || !token) {
+		return null;
+	}
+
+	// Use Cloudflare-optimized Redis client with fromEnv
+	// Pass only the required Redis credentials
+	const redis = Redis.fromEnv({
+		UPSTASH_REDIS_REST_URL: url,
+		UPSTASH_REDIS_REST_TOKEN: token
+	});
+
+	// Get environment name for prefix to avoid key collisions between deployments
+	const environment = getEnvironmentName(env);
+	const prefix = `@upstash/ratelimit/${environment}`;
+
+	// Create a sliding window rate limiter: 3 requests per 10 seconds
+	const ratelimit = new Ratelimit({
+		redis,
+		limiter: Ratelimit.slidingWindow(3, '10 s'),
+		analytics: true,
+		prefix
+	});
+
+	return ratelimit;
+}
+
+/**
+ * Checks if a user can perform a counter action based on rate limits
+ * Returns { success: true } if allowed, or { success: false, reset: timestamp } if rate limited
+ */
+export async function checkRateLimit(
+	userId: number,
+	env?: {
+		UPSTASH_REDIS_REST_URL?: string;
+		UPSTASH_REDIS_REST_TOKEN?: string;
+		ENVIRONMENT?: string;
+		CF_PAGES_BRANCH?: string;
+	}
+): Promise<{ success: boolean; reset?: number; remaining?: number }> {
+	const ratelimit = createRateLimiter(env);
+
+	// If rate limiting is not configured, allow all requests
+	if (!ratelimit) {
+		return { success: true };
+	}
+
+	try {
+		const identifier = `user_${userId}`;
+		const result = await ratelimit.limit(identifier);
+
+		return {
+			success: result.success,
+			reset: result.reset,
+			remaining: result.remaining
+		};
+	} catch (error) {
+		// If rate limiting fails, log the error and allow the request
+		// This ensures the application continues working even if Redis is down
+		console.error('Rate limiting check failed:', error);
+		return { success: true };
+	}
+}
