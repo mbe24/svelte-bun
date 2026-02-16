@@ -63,6 +63,9 @@ test.describe('Authentication Flow', () => {
 		await page.click('button[type="submit"]');
 		await page.waitForURL('**/counter');
 
+		// Wait for logout button to be visible (counter page loads first)
+		await page.waitForSelector('.logout-button', { state: 'visible' });
+
 		// Logout
 		await page.click('.logout-button');
 		await page.waitForURL('http://localhost:5173/');
@@ -84,6 +87,8 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#password', 'wrongpass');
 		await page.click('button[type="submit"]');
 
+		// Wait for error message to appear (async login request)
+		await page.waitForSelector('.error', { state: 'visible' });
 		await expect(page.locator('.error')).toContainText('Invalid credentials');
 	});
 
@@ -97,6 +102,9 @@ test.describe('Authentication Flow', () => {
 		await page.click('button[type="submit"]');
 		await page.waitForURL('**/counter');
 
+		// Wait for logout button to be visible before clicking
+		await page.waitForSelector('.logout-button', { state: 'visible' });
+
 		// Logout
 		await page.click('.logout-button');
 		await page.waitForURL('http://localhost:5173/');
@@ -108,6 +116,8 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#confirm-password', testPassword);
 		await page.click('button[type="submit"]');
 
+		// Wait for error message to appear (async registration request)
+		await page.waitForSelector('.error', { state: 'visible' });
 		await expect(page.locator('.error')).toContainText('Username already exists');
 	});
 });
