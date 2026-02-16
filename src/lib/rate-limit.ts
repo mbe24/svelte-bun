@@ -11,8 +11,8 @@ export function createRateLimiter(env?: {
 }) {
 	// Check if Upstash Redis is configured
 	// Treat empty strings as missing configuration
-	if (!env?.UPSTASH_REDIS_REST_URL || env.UPSTASH_REDIS_REST_URL.trim() === '' ||
-	    !env?.UPSTASH_REDIS_REST_TOKEN || env.UPSTASH_REDIS_REST_TOKEN.trim() === '') {
+	if (!env?.UPSTASH_REDIS_REST_URL || env.UPSTASH_REDIS_REST_URL?.trim() === '' ||
+	    !env?.UPSTASH_REDIS_REST_TOKEN || env.UPSTASH_REDIS_REST_TOKEN?.trim() === '') {
 		return null;
 	}
 
