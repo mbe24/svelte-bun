@@ -87,8 +87,9 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#password', 'wrongpass');
 		await page.click('button[type="submit"]');
 
-		// Wait for error message to appear (async login request)
-		await page.waitForSelector('.error', { state: 'visible' });
+		// Wait for loading state to complete and error to appear
+		await page.waitForSelector('button:has-text("Login")', { timeout: 35000 });
+		await expect(page.locator('.error')).toBeVisible({ timeout: 5000 });
 		await expect(page.locator('.error')).toContainText('Invalid credentials');
 	});
 
@@ -116,8 +117,9 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#confirm-password', testPassword);
 		await page.click('button[type="submit"]');
 
-		// Wait for error message to appear (async registration request)
-		await page.waitForSelector('.error', { state: 'visible' });
+		// Wait for loading state to complete and error to appear
+		await page.waitForSelector('button:has-text("Register")', { timeout: 35000 });
+		await expect(page.locator('.error')).toBeVisible({ timeout: 5000 });
 		await expect(page.locator('.error')).toContainText('Username already exists');
 	});
 });
