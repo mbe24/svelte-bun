@@ -11,8 +11,9 @@ All OTLP logs are tagged with a `service.name` attribute that includes the envir
 Logs are tagged with `service.name` in the format: `svelte-bun-{environment}`
 
 Examples:
-- `svelte-bun-production` - Production environment
-- `svelte-bun-preview` - Preview/staging environment
+- `svelte-bun-production` - Production environment (main/master branch)
+- `svelte-bun-feature-auth` - Feature branch preview environment
+- `svelte-bun-bugfix-123` - Bugfix branch preview environment
 - `svelte-bun-development` - Local development
 
 ## Configuration
@@ -22,10 +23,10 @@ Examples:
 On Cloudflare Pages, the environment is automatically detected from the `CF_PAGES_BRANCH` environment variable:
 
 - **`main` or `master` branch** → `production`
-- **Any other branch** → `preview`
+- **Any other branch** → uses the branch name directly (e.g., `feature-auth`, `bugfix-123`)
 - **No CF_PAGES_BRANCH** → `development`
 
-**No configuration needed!** Just deploy to Cloudflare Pages and logs will be automatically tagged.
+**No configuration needed!** Just deploy to Cloudflare Pages and logs will be automatically tagged with the branch name, allowing you to differentiate between different preview deployments.
 
 ### Option 2: Explicit Environment Variable
 
@@ -84,14 +85,19 @@ service.name contains "production"
 service.name = "svelte-bun-production" AND severity_text = "ERROR"
 ```
 
-**Preview environment performance issues:**
+**Specific feature branch performance issues:**
 ```
-service.name = "svelte-bun-preview" AND duration_ms > 1000
+service.name = "svelte-bun-feature-auth" AND duration_ms > 1000
 ```
 
 **All non-production logs:**
 ```
 service.name != "svelte-bun-production"
+```
+
+**All logs from feature branches (using wildcard):**
+```
+service.name LIKE "svelte-bun-feature-%"
 ```
 
 ## Environment Detection Logic
@@ -101,7 +107,7 @@ service.name != "svelte-bun-production"
 1. **ENVIRONMENT** - If explicitly set, always use this value
 2. **CF_PAGES_BRANCH** - For Cloudflare Pages:
    - `main` or `master` → `production`
-   - Other branches → `preview`
+   - Other branches → branch name (e.g., `feature-auth`, `bugfix-123`)
 3. **NODE_ENV** - Fallback to Node.js environment
 4. **Default** - `development` if none of the above are set
 
@@ -124,10 +130,16 @@ service.name != "svelte-bun-production"
 # Automatically tagged as "svelte-bun-production"
 ```
 
-**Preview (feature-branch):**
+**Preview (feature-auth branch):**
 ```bash
 # No configuration needed!
-# Automatically tagged as "svelte-bun-preview"
+# Automatically tagged as "svelte-bun-feature-auth"
+```
+
+**Preview (bugfix-123 branch):**
+```bash
+# No configuration needed!
+# Automatically tagged as "svelte-bun-bugfix-123"
 ```
 
 ### Custom Environment Names

@@ -12,7 +12,8 @@
 			initPostHogClient(
 				data.posthog.apiKey, 
 				data.posthog.host || undefined,
-				data.posthog.otlpHost || undefined
+				data.posthog.otlpHost || undefined,
+				data.posthog.environment || undefined
 			);
 		}
 	});

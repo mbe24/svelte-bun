@@ -2,47 +2,7 @@
  * Server-side OTLP logging for PostHog
  */
 
-/**
- * Determine the environment name for service identification
- * Priority:
- * 1. ENVIRONMENT if explicitly set
- * 2. CF_PAGES_BRANCH for Cloudflare Pages (production, preview, or branch name)
- * 3. NODE_ENV if set
- * 4. Defaults to 'development'
- */
-function getEnvironmentName(env?: { ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
-	// Check explicit ENVIRONMENT first
-	if (env?.ENVIRONMENT) {
-		return env.ENVIRONMENT;
-	}
-	
-	// For Cloudflare Pages, use CF_PAGES_BRANCH
-	// 'main' or 'master' branch -> 'production'
-	// Other branches -> 'preview'
-	if (env?.CF_PAGES_BRANCH) {
-		const branch = env.CF_PAGES_BRANCH;
-		if (branch === 'main' || branch === 'master') {
-			return 'production';
-		}
-		return 'preview';
-	}
-	
-	// Fallback to NODE_ENV if available
-	if (typeof process !== 'undefined' && process.env.NODE_ENV) {
-		return process.env.NODE_ENV;
-	}
-	
-	// Default to development
-	return 'development';
-}
-
-/**
- * Get service name with environment suffix
- */
-function getServiceName(env?: { ENVIRONMENT?: string; CF_PAGES_BRANCH?: string }): string {
-	const environment = getEnvironmentName(env);
-	return `svelte-bun-${environment}`;
-}
+import { getEnvironmentName, getServiceName } from './environment';
 
 /**
  * Get OTLP ingestion endpoint

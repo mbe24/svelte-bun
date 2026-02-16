@@ -1,5 +1,6 @@
 import type { LayoutServerLoad } from './$types';
 import { logLoadFunction } from '$lib/telemetry';
+import { getEnvironmentName } from '$lib/environment';
 
 const ROUTE_ID = '/layout';
 
@@ -24,7 +25,8 @@ export const load: LayoutServerLoad = async ({ platform, locals, route, isDataRe
 				? {
 					apiKey: posthogApiKey,
 					host: posthogHost || undefined,
-					otlpHost: posthogOtlpHost || undefined
+					otlpHost: posthogOtlpHost || undefined,
+					environment: getEnvironmentName(env)
 				}
 				: undefined
 		};
