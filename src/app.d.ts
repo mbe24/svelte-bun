@@ -23,6 +23,8 @@ declare global {
 				POSTHOG_OTLP_HOST?: string;
 				ENVIRONMENT?: string;
 				CF_PAGES_BRANCH?: string; // Cloudflare Pages automatically sets this
+				UPSTASH_REDIS_REST_URL?: string;
+				UPSTASH_REDIS_REST_TOKEN?: string;
 				// Add other environment variables as needed
 			};
 			context?: {
