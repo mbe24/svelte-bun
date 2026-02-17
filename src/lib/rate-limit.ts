@@ -64,9 +64,8 @@ export async function checkRateLimit(
 	// For high-traffic scenarios, consider implementing caching with a short TTL (30-60s)
 	// to reduce latency and API calls to PostHog.
 	const featureFlagService = getFeatureFlagService(env);
-	const isRateLimitEnabled = await featureFlagService.isFeatureEnabled(
+	const isRateLimitEnabled = await featureFlagService.isFeatureEnabledGlobal(
 		FeatureFlags.RATE_LIMIT_COUNTER,
-		`user_${userId}`,
 		true // Default to enabled (rate limiting is on by default)
 	);
 
