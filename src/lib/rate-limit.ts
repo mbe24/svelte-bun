@@ -57,12 +57,12 @@ export async function checkRateLimit(
 		CF_PAGES_BRANCH?: string;
 		POSTHOG_API_KEY?: string;
 		POSTHOG_HOST?: string;
+		FEATURE_FLAG_CACHE_TTL_MS?: string;
 	}
 ): Promise<{ success: boolean; remaining?: number; retryAfter?: number }> {
 	// Check if rate limiting feature is enabled via feature flag
-	// Note: This makes an async call to PostHog on every rate limit check.
-	// For high-traffic scenarios, consider implementing caching with a short TTL (30-60s)
-	// to reduce latency and API calls to PostHog.
+	// Feature flag values are cached to reduce API calls to PostHog
+	// Cache TTL can be configured via FEATURE_FLAG_CACHE_TTL_MS env variable (default: 10 minutes)
 	const featureFlagService = getFeatureFlagService(env);
 	const isRateLimitEnabled = await featureFlagService.isFeatureEnabledGlobal(
 		FeatureFlags.RATE_LIMIT_COUNTER,

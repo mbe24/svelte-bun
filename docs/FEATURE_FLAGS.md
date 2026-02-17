@@ -115,7 +115,25 @@ POSTHOG_API_KEY=your_posthog_api_key
 
 # PostHog Host (optional, defaults to https://app.posthog.com)
 POSTHOG_HOST=https://app.posthog.com
+
+# Feature Flag Cache TTL (optional, defaults to 600000ms = 10 minutes)
+# This controls how long feature flag values are cached to reduce API calls
+FEATURE_FLAG_CACHE_TTL_MS=600000
 ```
+
+### Caching
+
+Feature flag values are cached to improve performance and reduce API calls to PostHog:
+
+- **Default TTL**: 10 minutes (600,000 milliseconds)
+- **Configurable**: Set `FEATURE_FLAG_CACHE_TTL_MS` environment variable to customize
+- **Per-flag cache**: Each flag+user combination is cached separately
+- **Automatic expiration**: Cache entries expire after the TTL and are refreshed on next check
+
+**When changes take effect:**
+- If you change a flag in PostHog, the change will take effect after the cache expires (up to 10 minutes by default)
+- To see changes faster, reduce the cache TTL (e.g., set to 60000 for 1 minute)
+- No page reload or server restart required - cache expiration is automatic
 
 ### Without PostHog
 

@@ -28,21 +28,81 @@ export interface FeatureFlagService {
 }
 
 /**
- * PostHog implementation of the feature flag service
+ * Cache entry for feature flag values
+ */
+interface CacheEntry {
+	value: boolean;
+	expiresAt: number;
+}
+
+/**
+ * PostHog implementation of the feature flag service with caching
  */
 export class PostHogFeatureFlagService implements FeatureFlagService {
+	private cache: Map<string, CacheEntry> = new Map();
+	private cacheTTL: number;
+
 	constructor(
 		private env?: {
 			POSTHOG_API_KEY?: string;
 			POSTHOG_HOST?: string;
+			FEATURE_FLAG_CACHE_TTL_MS?: string;
 		}
-	) {}
+	) {
+		// Default to 10 minutes (600000ms), or use env variable
+		const ttlFromEnv = env?.FEATURE_FLAG_CACHE_TTL_MS
+			? parseInt(env.FEATURE_FLAG_CACHE_TTL_MS, 10)
+			: 600000;
+		this.cacheTTL = isNaN(ttlFromEnv) ? 600000 : ttlFromEnv;
+	}
+
+	/**
+	 * Get cache key for a flag
+	 */
+	private getCacheKey(flagKey: string, distinctId: string): string {
+		return `${flagKey}:${distinctId}`;
+	}
+
+	/**
+	 * Get cached value if available and not expired
+	 */
+	private getCachedValue(cacheKey: string): boolean | null {
+		const entry = this.cache.get(cacheKey);
+		if (!entry) {
+			return null;
+		}
+
+		const now = Date.now();
+		if (now > entry.expiresAt) {
+			// Cache expired, remove it
+			this.cache.delete(cacheKey);
+			return null;
+		}
+
+		return entry.value;
+	}
+
+	/**
+	 * Set cached value
+	 */
+	private setCachedValue(cacheKey: string, value: boolean): void {
+		const expiresAt = Date.now() + this.cacheTTL;
+		this.cache.set(cacheKey, { value, expiresAt });
+	}
 
 	async isFeatureEnabled(
 		flagKey: string,
 		distinctId: string,
 		defaultValue: boolean
 	): Promise<boolean> {
+		const cacheKey = this.getCacheKey(flagKey, distinctId);
+
+		// Check cache first
+		const cachedValue = this.getCachedValue(cacheKey);
+		if (cachedValue !== null) {
+			return cachedValue;
+		}
+
 		const posthog = getPostHog(this.env);
 
 		if (!posthog) {
@@ -51,7 +111,12 @@ export class PostHogFeatureFlagService implements FeatureFlagService {
 
 		try {
 			const isEnabled = await posthog.isFeatureEnabled(flagKey, distinctId);
-			return isEnabled ?? defaultValue;
+			const result = isEnabled ?? defaultValue;
+
+			// Cache the result
+			this.setCachedValue(cacheKey, result);
+
+			return result;
 		} catch (error) {
 			console.error(`Error checking feature flag ${flagKey}:`, error);
 			return defaultValue;
@@ -87,6 +152,7 @@ export const FeatureFlags = {
 export function getFeatureFlagService(env?: {
 	POSTHOG_API_KEY?: string;
 	POSTHOG_HOST?: string;
+	FEATURE_FLAG_CACHE_TTL_MS?: string;
 }): FeatureFlagService {
 	return new PostHogFeatureFlagService(env);
 }
