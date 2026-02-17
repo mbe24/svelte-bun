@@ -34,6 +34,8 @@ test.describe('Authentication Flow', () => {
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
 		
+		// Ensure button is enabled before clicking (not disabled by loading state)
+		await expect(page.getByTestId('register-submit')).toBeEnabled();
 		await page.getByTestId('register-submit').click();
 		
 		// Ensure request was sent
@@ -74,6 +76,8 @@ test.describe('Authentication Flow', () => {
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
 		
+		// Ensure button is enabled before clicking
+		await expect(page.getByTestId('register-submit')).toBeEnabled();
 		await page.getByTestId('register-submit').click();
 		await requestPromise;
 		await responsePromise;
@@ -111,6 +115,8 @@ test.describe('Authentication Flow', () => {
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
 		
+		// Ensure button is enabled before clicking
+		await expect(page.getByTestId('register-submit')).toBeEnabled();
 		await page.getByTestId('register-submit').click();
 		await registerRequestPromise;
 		await registerResponsePromise;
@@ -137,6 +143,8 @@ test.describe('Authentication Flow', () => {
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
 		
+		// Ensure button is enabled before clicking
+		await expect(page.getByTestId('login-submit')).toBeEnabled();
 		await page.getByTestId('login-submit').click();
 		await loginRequestPromise;
 		const loginResponse = await loginResponsePromise;
@@ -168,6 +176,8 @@ test.describe('Authentication Flow', () => {
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
 		
+		// Ensure button is enabled before clicking
+		await expect(page.getByTestId('login-submit')).toBeEnabled();
 		await page.getByTestId('login-submit').click();
 		
 		// Ensure request was sent
@@ -208,6 +218,8 @@ test.describe('Authentication Flow', () => {
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
 		
+		// Ensure button is enabled before clicking
+		await expect(page.getByTestId('register-submit')).toBeEnabled();
 		await page.getByTestId('register-submit').click();
 		await firstRegisterRequestPromise;
 		await firstRegisterResponsePromise;
@@ -234,6 +246,8 @@ test.describe('Authentication Flow', () => {
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
 		
+		// Ensure button is enabled before clicking
+		await expect(page.getByTestId('register-submit')).toBeEnabled();
 		await page.getByTestId('register-submit').click();
 		
 		// Ensure request was sent
