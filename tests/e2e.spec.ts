@@ -6,7 +6,7 @@ test.describe('Authentication Flow', () => {
 
 	test('should register a new user and access counter', async ({ page }) => {
 		// Visit home page
-		await page.goto('http://localhost:4173');
+		await page.goto('/');
 		await expect(page.locator('h1')).toContainText('Welcome to SvelteKit');
 
 		// Click register link
@@ -31,7 +31,7 @@ test.describe('Authentication Flow', () => {
 
 	test('should increment and decrement counter', async ({ page }) => {
 		// Register and login first
-		await page.goto('http://localhost:4173/register');
+		await page.goto('/register');
 		const username = `testuser_${Date.now()}`;
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
@@ -55,7 +55,7 @@ test.describe('Authentication Flow', () => {
 
 	test('should login existing user', async ({ page }) => {
 		// First register a user
-		await page.goto('http://localhost:4173/register');
+		await page.goto('/register');
 		const username = `testuser_${Date.now()}`;
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
@@ -65,7 +65,7 @@ test.describe('Authentication Flow', () => {
 
 		// Logout
 		await page.click('.logout-button');
-		await page.waitForURL('http://localhost:4173/');
+		await page.waitForURL('/');
 
 		// Login
 		await page.click('a[href="/login"]');
@@ -78,7 +78,7 @@ test.describe('Authentication Flow', () => {
 	});
 
 	test('should show error for invalid login', async ({ page }) => {
-		await page.goto('http://localhost:4173/login');
+		await page.goto('/login');
 
 		await page.fill('#username', 'nonexistent');
 		await page.fill('#password', 'wrongpass');
@@ -90,7 +90,7 @@ test.describe('Authentication Flow', () => {
 	test('should show error for duplicate username', async ({ page }) => {
 		// Register first user
 		const username = `testuser_${Date.now()}`;
-		await page.goto('http://localhost:4173/register');
+		await page.goto('/register');
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
@@ -99,10 +99,10 @@ test.describe('Authentication Flow', () => {
 
 		// Logout
 		await page.click('.logout-button');
-		await page.waitForURL('http://localhost:4173/');
+		await page.waitForURL('/');
 
 		// Try to register with same username
-		await page.goto('http://localhost:4173/register');
+		await page.goto('/register');
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
