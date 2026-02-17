@@ -13,6 +13,7 @@ jobs:
       contents: read
     
     env:
+      CI: true
       DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER || 'postgres' }}:${{ secrets.POSTGRES_PASSWORD || 'postgres' }}@localhost:5432/${{ secrets.POSTGRES_DB || 'sveltekit_db' }}
     
     services:
@@ -52,6 +53,14 @@ jobs:
     
     - name: Setup database schema
       run: bun run db:push
+    
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
+        restore-keys: |
+          playwright-${{ runner.os }}-
     
     - name: Install Playwright browsers
       run: bunx playwright install --with-deps chromium

@@ -43,7 +43,7 @@
 		<h1>Login</h1>
 		<p class="subtitle">Sign in to your account</p>
 
-		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} data-testid="login-form">
 			<div class="form-group">
 				<label for="username">Username</label>
 				<input
@@ -67,10 +67,10 @@
 			</div>
 
 			{#if error}
-				<div class="error">{error}</div>
+				<div class="error" data-testid="login-error">{error}</div>
 			{/if}
 
-			<button type="submit" class="button-primary" disabled={loading}>
+			<button type="submit" class="button-primary" disabled={loading} data-testid="login-submit">
 				{loading ? 'Logging in...' : 'Login'}
 			</button>
 		</form>
