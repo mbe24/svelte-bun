@@ -64,10 +64,11 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'postgres' }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB || 'sveltekit_db' }}
         options: >-
-          --health-cmd "pg_isready -U postgres -d sveltekit_db"
+          --health-cmd "pg_isready -U ${{ secrets.POSTGRES_USER || 'postgres' }} -d ${{ secrets.POSTGRES_DB || 'sveltekit_db' }}"
+          --health-start-interval 500ms
           --health-interval 1s
-          --health-timeout 2s
-          --health-retries 30
+          --health-timeout 1s
+          --health-retries 60
         ports:
           - 5432:5432
 
