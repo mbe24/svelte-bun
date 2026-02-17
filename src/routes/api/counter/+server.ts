@@ -69,7 +69,6 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 			{
 				error: 'Rate limit exceeded',
 				message: 'Too many actions. Please wait before trying again.',
-				reset: rateLimitResult.reset,
 				remaining: rateLimitResult.remaining,
 				retryAfter: rateLimitResult.retryAfter
 			},

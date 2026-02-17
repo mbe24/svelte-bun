@@ -69,27 +69,15 @@ When rate limit is active:
 
 ### Message Countdown
 
-The error message includes a countdown timer calculated on the server side for accuracy:
+The error message includes a countdown timer provided by the server:
 ```typescript
-// Use retryAfter from server if available, otherwise calculate from reset
-let waitSeconds = 0;
-if (data.retryAfter) {
-    // Server-calculated retry time (more accurate for sliding windows)
-    waitSeconds = data.retryAfter;
-} else if (data.reset) {
-    // Fallback: calculate from reset timestamp
-    const now = Date.now();
-    const resetTime = data.reset;
-    waitSeconds = Math.ceil((resetTime - now) / 1000);
-}
-
-if (waitSeconds > 0) {
-    rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
-}
+// Use server-provided retryAfter
+const waitSeconds = data.retryAfter || 10;
+rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
 ```
 
-**Why server-side calculation?**
-The Upstash sliding window implementation returns a `reset` timestamp that represents the end of the current window bucket (like a fixed window), not when the next request will actually be available. For sliding windows, this can lead to inaccurate wait times. The server-side calculation caps the wait time at the window duration (10 seconds) for more accurate user feedback.
+**Why use window duration?**
+The server always returns the full window duration (10 seconds) as the retry time. This provides consistent, predictable behavior for users. While this is a conservative estimate (users might be able to retry slightly sooner in some cases), it ensures they will never hit the rate limit again after waiting the specified time. The Upstash sliding window implementation uses fixed bucket boundaries internally, making it impossible to accurately predict the exact retry time without tracking individual request timestamps.
 
 ## User Experience Flow
 
@@ -98,15 +86,14 @@ The Upstash sliding window implementation returns a `reset` timestamp that repre
 3. User clicks again (3rd time) → ✅ Success
 4. User clicks again (4th time within 10 seconds) → ❌ Rate limited
    - Error message appears below buttons
-   - Message shows countdown timer
-5. User waits for countdown to reach 0
+   - Message shows "Please wait 10 seconds before trying again."
+5. User waits 10 seconds
 6. User can click again → ✅ Success
 
 ## Error Message Text Examples
 
 - Initial display: "Too many actions. Please wait before trying again."
-- With countdown: "Too many actions. Please wait 8 seconds before trying again."
-- Fallback: "Too many actions. Please wait before trying again." (if no reset timestamp)
+- With countdown: "Too many actions. Please wait 10 seconds before trying again."
 
 ## Technical Implementation
 
@@ -132,14 +119,9 @@ if (response.status === 429) {
     const data = await response.json();
     rateLimitError = data.message;
     
-    // Use server-provided retryAfter for accurate wait time
-    // The server calculates this based on the sliding window duration
-    // to avoid showing incorrect wait times caused by the reset timestamp
-    let waitSeconds = data.retryAfter || 0;
-    
-    if (waitSeconds > 0) {
-        rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
-    }
+    // Use server-provided retryAfter
+    const waitSeconds = data.retryAfter || 10;
+    rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
     
     // Auto-clear after 10 seconds
 }
@@ -159,15 +141,13 @@ Content-Type: application/json
 {
   "error": "Rate limit exceeded",
   "message": "Too many actions. Please wait before trying again.",
-  "reset": 1234567890000,
   "remaining": 0,
   "retryAfter": 10
 }
 ```
 
 - `Retry-After` header: HTTP standard header indicating seconds to wait (RFC 6585)
-- `retryAfter`: Server-calculated wait time in seconds (accurate for sliding windows)
-- `reset`: Unix timestamp in milliseconds when limit resets (kept for backwards compatibility)
+- `retryAfter`: Always set to the window duration (10 seconds) for consistent behavior
 - `remaining`: Number of remaining requests in current window
 
 ## Accessibility Considerations
@@ -176,12 +156,12 @@ Content-Type: application/json
 - Color contrast meets WCAG AA standards (dark red on light pink)
 - Font size is readable (0.9rem)
 - Message is clear and actionable
-- Countdown provides clear feedback on when to retry
+- Fixed 10-second wait time provides predictable user experience
 
 ## Testing Scenarios
 
 1. **Test Rate Limit Trigger**: Click increment 4 times rapidly → should see error after 3rd click
-2. **Test Countdown Display**: Verify countdown shows correct seconds
+2. **Test Wait Time Display**: Verify message shows "wait 10 seconds"
 3. **Test Auto-Dismiss**: Wait 10 seconds → error should disappear
 4. **Test Clear on New Action**: Click button after cooldown → error should clear
 5. **Test Memory Leak**: Navigate away during countdown → no console errors
