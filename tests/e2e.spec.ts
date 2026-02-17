@@ -93,8 +93,8 @@ test.describe('Authentication Flow', () => {
 
 		// Wait for loading state to complete and error to appear
 		await page.waitForSelector('button:has-text("Login")', { timeout: API_RESPONSE_TIMEOUT });
-		await expect(page.locator('.error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
-		await expect(page.locator('.error')).toContainText('Invalid credentials');
+		await expect(page.getByTestId('login-error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
+		await expect(page.getByTestId('login-error')).toContainText('Invalid credentials');
 	});
 
 	test('should show error for duplicate username', async ({ page }) => {
@@ -123,7 +123,7 @@ test.describe('Authentication Flow', () => {
 
 		// Wait for loading state to complete and error to appear
 		await page.waitForSelector('button:has-text("Register")', { timeout: API_RESPONSE_TIMEOUT });
-		await expect(page.locator('.error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
-		await expect(page.locator('.error')).toContainText('Username already exists');
+		await expect(page.getByTestId('register-error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
+		await expect(page.getByTestId('register-error')).toContainText('Username already exists');
 	});
 });

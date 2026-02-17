@@ -84,7 +84,7 @@
 			</div>
 
 			{#if error}
-				<div class="error">{error}</div>
+				<div class="error" data-testid="register-error">{error}</div>
 			{/if}
 
 			<button type="submit" class="button-primary" disabled={loading}>
