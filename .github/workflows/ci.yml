@@ -13,6 +13,7 @@ jobs:
       contents: read
     
     env:
+      CI: true
       DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER || 'postgres' }}:${{ secrets.POSTGRES_PASSWORD || 'postgres' }}@localhost:5432/${{ secrets.POSTGRES_DB || 'sveltekit_db' }}
     
     services:

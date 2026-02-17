@@ -4,7 +4,9 @@ import { getDb } from '$lib/db';
 import { users, sessions } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-const SALT_ROUNDS = 10;
+// Use minimal bcrypt rounds in CI for fast tests, secure rounds in production
+// bcrypt requires minimum 1 round, so we use 1 for CI instead of 0
+const SALT_ROUNDS = process.env.CI === 'true' ? 1 : 10;
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 export async function hashPassword(password: string): Promise<string> {
