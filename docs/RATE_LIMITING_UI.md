@@ -165,7 +165,7 @@ Content-Type: application/json
 
 1. **Test Rate Limit Trigger**: Click increment 4 times rapidly → should see error after 3rd click
 2. **Test Wait Time Display**: Verify message shows accurate wait time based on sliding window
-3. **Test Auto-Dismiss**: Wait 10 seconds → error should disappear
+3. **Test Auto-Dismiss**: Wait for the retryAfter duration → error should disappear
 4. **Test Clear on New Action**: Click button after cooldown → error should clear
 5. **Test Memory Leak**: Navigate away during countdown → no console errors
 6. **Test Sliding Window**: Make requests at different intervals and verify wait times vary accordingly
