@@ -65,7 +65,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres -d sveltekit_db"
           --health-interval 1s
-          --health-timeout 2s
+          --health-timeout 5s
           --health-retries 30
         ports:
           - 5432:5432
