@@ -57,16 +57,16 @@ jobs:
     
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16-alpine@sha256:97ff59a4e30e08d1c11bdcd9455e7832368c0572b576c9092cde2df4ae5552a3
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'postgres' }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'postgres' }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB || 'sveltekit_db' }}
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "pg_isready -U postgres -d sveltekit_db"
+          --health-interval 1s
+          --health-timeout 2s
+          --health-retries 30
         ports:
           - 5432:5432
 
