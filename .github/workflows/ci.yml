@@ -63,12 +63,6 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'postgres' }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'postgres' }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB || 'sveltekit_db' }}
-        options: >-
-          --health-cmd "pg_isready -U postgres -d sveltekit_db"
-          --health-start-interval 500ms
-          --health-interval 1s
-          --health-timeout 1s
-          --health-retries 60
         ports:
           - 5432:5432
 
@@ -93,6 +87,33 @@ jobs:
     
     - name: Build application
       run: bun run build
+    
+    - name: Wait for Postgres
+      run: |
+        IMAGE="postgres:16-alpine@sha256:97ff59a4e30e08d1c11bdcd9455e7832368c0572b576c9092cde2df4ae5552a3"
+        CID="$(docker ps --filter "ancestor=$IMAGE" --format '{{.ID}}' | head -n 1)"
+
+        if [ -z "$CID" ]; then
+          echo "Could not find running postgres container for $IMAGE" >&2
+          docker ps -a
+          exit 1
+        fi
+
+        USER="${{ secrets.POSTGRES_USER || 'postgres' }}"
+        DB="${{ secrets.POSTGRES_DB || 'sveltekit_db' }}"
+
+        echo "Waiting for Postgres to be ready (container $CID)..."
+        for i in {1..200}; do
+          if docker exec "$CID" pg_isready -U "$USER" -d "$DB" > /dev/null 2>&1; then
+            echo "Postgres is ready"
+            exit 0
+          fi
+          sleep 0.2
+        done
+
+        echo "Timed out waiting for Postgres" >&2
+        docker logs "$CID" || true
+        exit 1
     
     - name: Setup database schema
       run: bun run db:push
