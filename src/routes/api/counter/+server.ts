@@ -73,7 +73,12 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 				remaining: rateLimitResult.remaining,
 				retryAfter: rateLimitResult.retryAfter
 			},
-			{ status: 429 }
+			{ 
+				status: 429,
+				headers: {
+					'Retry-After': String(rateLimitResult.retryAfter || 10)
+				}
+			}
 		);
 	}
 

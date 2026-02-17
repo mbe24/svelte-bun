@@ -146,6 +146,15 @@ if (response.status === 429) {
 ```
 
 **API Response Format:**
+
+**Headers:**
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 10
+Content-Type: application/json
+```
+
+**Body:**
 ```json
 {
   "error": "Rate limit exceeded",
@@ -156,6 +165,7 @@ if (response.status === 429) {
 }
 ```
 
+- `Retry-After` header: HTTP standard header indicating seconds to wait (RFC 6585)
 - `retryAfter`: Server-calculated wait time in seconds (accurate for sliding windows)
 - `reset`: Unix timestamp in milliseconds when limit resets (kept for backwards compatibility)
 - `remaining`: Number of remaining requests in current window
