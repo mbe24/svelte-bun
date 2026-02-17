@@ -43,9 +43,12 @@ export function createRateLimiter(env?: {
 	return ratelimit;
 }
 
+// Rate limit configuration
+const RATE_LIMIT_WINDOW_MS = 10 * 1000; // 10 seconds in milliseconds
+
 /**
  * Checks if a user can perform a counter action based on rate limits
- * Returns { success: true } if allowed, or { success: false, reset: timestamp } if rate limited
+ * Returns { success: true } if allowed, or { success: false, retryAfter: seconds } if rate limited
  */
 export async function checkRateLimit(
 	userId: number,
@@ -55,7 +58,7 @@ export async function checkRateLimit(
 		ENVIRONMENT?: string;
 		CF_PAGES_BRANCH?: string;
 	}
-): Promise<{ success: boolean; reset?: number; remaining?: number }> {
+): Promise<{ success: boolean; reset?: number; remaining?: number; retryAfter?: number }> {
 	const ratelimit = createRateLimiter(env);
 
 	// If rate limiting is not configured, allow all requests
@@ -66,6 +69,28 @@ export async function checkRateLimit(
 	try {
 		const identifier = `user_${userId}`;
 		const result = await ratelimit.limit(identifier);
+
+		if (!result.success) {
+			// For sliding window, the 'reset' timestamp represents the end of the current
+			// window bucket, which doesn't accurately reflect when the next request will be
+			// available. Instead, we calculate a more accurate wait time based on the 
+			// window duration. In the worst case, the user needs to wait for the full
+			// window duration (10 seconds), but in practice with a sliding window, they
+			// can often retry sooner.
+			const now = Date.now();
+			const resetWaitTime = Math.ceil((result.reset - now) / 1000);
+			
+			// Use the smaller of: time until reset OR the window duration
+			// This gives a more accurate estimate for sliding windows
+			const retryAfter = Math.max(1, Math.min(resetWaitTime, RATE_LIMIT_WINDOW_MS / 1000));
+
+			return {
+				success: result.success,
+				reset: result.reset,
+				remaining: result.remaining,
+				retryAfter
+			};
+		}
 
 		return {
 			success: result.success,
