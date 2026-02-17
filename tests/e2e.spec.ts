@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 // Timeout constants for async operations
 const API_RESPONSE_TIMEOUT = 35000; // 35s for slow API calls (telemetry, database)
 const ERROR_VISIBILITY_TIMEOUT = 5000; // 5s for error message to appear
+const PAGE_LOAD_TIMEOUT = 10000; // 10s for page content to load
 
 test.describe('Authentication Flow', () => {
 	const testUsername = `testuser_${Date.now()}`;
@@ -34,7 +35,7 @@ test.describe('Authentication Flow', () => {
 		expect(response.status()).toBe(200);
 
 		// Wait for counter page element (more reliable than URL)
-		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: PAGE_LOAD_TIMEOUT });
 		await expect(page.locator('.counter-display')).toBeVisible();
 		
 		// Counter should be initialized to 0
@@ -57,7 +58,7 @@ test.describe('Authentication Flow', () => {
 		await responsePromise;
 
 		// Wait for counter page
-		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: PAGE_LOAD_TIMEOUT });
 
 		// Increment counter
 		await page.click('.counter-button.increment');
@@ -88,12 +89,12 @@ test.describe('Authentication Flow', () => {
 		await registerResponsePromise;
 
 		// Wait for counter page and logout button
-		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: PAGE_LOAD_TIMEOUT });
 		await expect(page.locator('.logout-button')).toBeVisible();
 
 		// Logout
 		await page.click('.logout-button');
-		await expect(page.locator('h1')).toContainText('Welcome to SvelteKit', { timeout: 10000 });
+		await expect(page.locator('h1')).toContainText('Welcome to SvelteKit', { timeout: PAGE_LOAD_TIMEOUT });
 
 		// Login
 		await page.click('a[href="/login"]');
@@ -111,7 +112,7 @@ test.describe('Authentication Flow', () => {
 		expect(loginResponse.status()).toBe(200);
 		
 		// Wait for counter page
-		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: PAGE_LOAD_TIMEOUT });
 	});
 
 	test('should show error for invalid login', async ({ page }) => {
@@ -155,10 +156,10 @@ test.describe('Authentication Flow', () => {
 		await firstRegisterPromise;
 
 		// Wait for counter page and logout
-		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: PAGE_LOAD_TIMEOUT });
 		await expect(page.locator('.logout-button')).toBeVisible();
 		await page.click('.logout-button');
-		await expect(page.locator('h1')).toContainText('Welcome to SvelteKit', { timeout: 10000 });
+		await expect(page.locator('h1')).toContainText('Welcome to SvelteKit', { timeout: PAGE_LOAD_TIMEOUT });
 
 		// Try to register with same username
 		await page.goto('http://localhost:5173/register');
