@@ -9,7 +9,7 @@ const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 // In CI, use instant no-op password functions for speed
 // In production, use secure bcrypt hashing
-const isCI = process.env.CI === 'true';
+const isCI = typeof process !== 'undefined' && process.env.CI === 'true';
 
 export async function hashPassword(password: string): Promise<string> {
 	if (isCI) {
