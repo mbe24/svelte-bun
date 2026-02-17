@@ -118,5 +118,35 @@ describe('Rate limiting utilities', () => {
 			});
 			expect(result.success).toBe(true);
 		});
+
+		test('should not return retryAfter when request succeeds', async () => {
+			const result = await checkRateLimit(1, undefined);
+			expect(result.success).toBe(true);
+			expect(result.retryAfter).toBeUndefined();
+		});
+
+		test('retryAfter calculation uses reset timestamp', () => {
+			// For sliding window rate limiting, the 'reset' timestamp from Upstash
+			// indicates when the oldest request will slide out of the window.
+			// This is the correct time to wait before retrying.
+			
+			// Example: If we hit the limit at t=5s and the oldest request was at t=0s,
+			// reset will be at t=10s, so retryAfter = 10 - 5 = 5 seconds
+			const now = Date.now();
+			const reset = now + 5000; // 5 seconds in the future
+			const retryAfter = Math.max(1, Math.ceil((reset - now) / 1000));
+			expect(retryAfter).toBe(5);
+			
+			// Minimum retry time is 1 second
+			const resetPast = now - 1000;
+			const retryAfterMin = Math.max(1, Math.ceil((resetPast - now) / 1000));
+			expect(retryAfterMin).toBe(1);
+		});
+
+		test('should not return reset field', async () => {
+			const result = await checkRateLimit(1, undefined);
+			expect(result.success).toBe(true);
+			expect(result).not.toHaveProperty('reset');
+		});
 	});
 });

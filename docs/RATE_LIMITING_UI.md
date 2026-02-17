@@ -69,18 +69,18 @@ When rate limit is active:
 
 ### Message Countdown
 
-The error message includes a countdown timer:
+The error message includes a dynamic countdown timer based on when the oldest request will slide out of the window:
 ```typescript
-// Calculate seconds until reset
-if (data.reset) {
-    const now = Date.now();
-    const resetTime = data.reset;
-    const waitSeconds = Math.ceil((resetTime - now) / 1000);
-    if (waitSeconds > 0) {
-        rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
-    }
-}
+// Use server-provided retryAfter
+const waitSeconds = data.retryAfter || 10;
+rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
 ```
+
+**How it works:**
+The server calculates `retryAfter` from the `reset` timestamp provided by Upstash's sliding window rate limiter. The `reset` timestamp indicates when the oldest request will slide out of the 10-second window, allowing a new request. This means:
+- If you make 3 requests at t=0s, t=1s, t=2s and hit the limit at t=3s, you wait 7 seconds (until t=10s when the first request slides out)
+- If you make 3 requests at t=5s, t=6s, t=7s and hit the limit at t=8s, you wait 7 seconds (until t=15s when the first request slides out)
+- The wait time varies based on when your oldest request was made, reflecting true sliding window behavior
 
 ## User Experience Flow
 
@@ -89,15 +89,14 @@ if (data.reset) {
 3. User clicks again (3rd time) → ✅ Success
 4. User clicks again (4th time within 10 seconds) → ❌ Rate limited
    - Error message appears below buttons
-   - Message shows countdown timer
-5. User waits for countdown to reach 0
+   - Message shows the actual wait time (e.g., "Please wait 7 seconds before trying again.")
+5. User waits for the countdown
 6. User can click again → ✅ Success
 
 ## Error Message Text Examples
 
 - Initial display: "Too many actions. Please wait before trying again."
-- With countdown: "Too many actions. Please wait 8 seconds before trying again."
-- Fallback: "Too many actions. Please wait before trying again." (if no reset timestamp)
+- With countdown: "Too many actions. Please wait 7 seconds before trying again." (varies based on sliding window)
 
 ## Technical Implementation
 
@@ -122,10 +121,37 @@ onDestroy(() => {
 if (response.status === 429) {
     const data = await response.json();
     rateLimitError = data.message;
-    // Calculate and display countdown
+    
+    // Use server-provided retryAfter
+    const waitSeconds = data.retryAfter || 10;
+    rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
+    
     // Auto-clear after 10 seconds
 }
 ```
+
+**API Response Format:**
+
+**Headers:**
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 10
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "error": "Rate limit exceeded",
+  "message": "Too many actions. Please wait before trying again.",
+  "remaining": 0,
+  "retryAfter": 7
+}
+```
+
+- `Retry-After` header: HTTP standard header indicating seconds to wait (RFC 6585)
+- `retryAfter`: Calculated from Upstash's `reset` timestamp - indicates when the oldest request slides out of the window
+- `remaining`: Number of remaining requests in current window
 
 ## Accessibility Considerations
 
@@ -133,15 +159,16 @@ if (response.status === 429) {
 - Color contrast meets WCAG AA standards (dark red on light pink)
 - Font size is readable (0.9rem)
 - Message is clear and actionable
-- Countdown provides clear feedback on when to retry
+- Dynamic wait time accurately reflects sliding window behavior
 
 ## Testing Scenarios
 
 1. **Test Rate Limit Trigger**: Click increment 4 times rapidly → should see error after 3rd click
-2. **Test Countdown Display**: Verify countdown shows correct seconds
-3. **Test Auto-Dismiss**: Wait 10 seconds → error should disappear
+2. **Test Wait Time Display**: Verify message shows accurate wait time based on sliding window
+3. **Test Auto-Dismiss**: Wait for the retryAfter duration → error should disappear
 4. **Test Clear on New Action**: Click button after cooldown → error should clear
 5. **Test Memory Leak**: Navigate away during countdown → no console errors
+6. **Test Sliding Window**: Make requests at different intervals and verify wait times vary accordingly
 
 ## Future Enhancements (Optional)
 

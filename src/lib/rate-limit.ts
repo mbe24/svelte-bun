@@ -45,7 +45,7 @@ export function createRateLimiter(env?: {
 
 /**
  * Checks if a user can perform a counter action based on rate limits
- * Returns { success: true } if allowed, or { success: false, reset: timestamp } if rate limited
+ * Returns { success: true } if allowed, or { success: false, retryAfter: seconds } if rate limited
  */
 export async function checkRateLimit(
 	userId: number,
@@ -55,7 +55,7 @@ export async function checkRateLimit(
 		ENVIRONMENT?: string;
 		CF_PAGES_BRANCH?: string;
 	}
-): Promise<{ success: boolean; reset?: number; remaining?: number }> {
+): Promise<{ success: boolean; remaining?: number; retryAfter?: number }> {
 	const ratelimit = createRateLimiter(env);
 
 	// If rate limiting is not configured, allow all requests
@@ -67,9 +67,22 @@ export async function checkRateLimit(
 		const identifier = `user_${userId}`;
 		const result = await ratelimit.limit(identifier);
 
+		if (!result.success) {
+			// For sliding window rate limiting, the 'reset' timestamp indicates when
+			// the oldest request will slide out of the window, allowing a new request.
+			// Calculate how many seconds until that happens.
+			const now = Date.now();
+			const retryAfter = Math.max(1, Math.ceil((result.reset - now) / 1000));
+
+			return {
+				success: result.success,
+				remaining: result.remaining,
+				retryAfter
+			};
+		}
+
 		return {
 			success: result.success,
-			reset: result.reset,
 			remaining: result.remaining
 		};
 	} catch (error) {

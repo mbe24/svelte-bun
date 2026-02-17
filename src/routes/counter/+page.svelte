@@ -66,15 +66,9 @@
 				const data = await response.json();
 				rateLimitError = data.message || 'Too many actions. Please wait before trying again.';
 				
-				// Calculate seconds until reset
-				if (data.reset) {
-					const now = Date.now();
-					const resetTime = data.reset;
-					const waitSeconds = Math.ceil((resetTime - now) / 1000);
-					if (waitSeconds > 0) {
-						rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
-					}
-				}
+				// Use server-provided retryAfter
+				const waitSeconds = data.retryAfter || 10;
+				rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
 				
 				// Auto-clear error after 10 seconds
 				if (rateLimitTimeout) {
