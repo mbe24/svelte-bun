@@ -44,11 +44,11 @@ test.describe('Authentication Flow', () => {
 		expect(response.status()).toBe(200);
 
 		// Wait for either success UI (counter page) OR error UI
-		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => true).catch(() => false);
-		const errorAppeared = page.getByTestId('register-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => false).catch(() => true);
+		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => 'success').catch(() => 'timeout');
+		const errorAppeared = page.getByTestId('register-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => 'error').catch(() => 'timeout');
 		
-		const isSuccess = await counterPageAppeared;
-		expect(isSuccess).toBe(true); // Should navigate to counter page
+		const outcome = await Promise.race([counterPageAppeared, errorAppeared]);
+		expect(outcome).toBe('success'); // Should navigate to counter page
 		
 		// Verify counter display is visible
 		await expect(page.locator('.counter-display')).toBeVisible();
@@ -145,11 +145,11 @@ test.describe('Authentication Flow', () => {
 		expect(loginResponse.status()).toBe(200);
 		
 		// Wait for either success UI (counter page) OR error UI
-		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => true).catch(() => false);
-		const errorAppeared = page.getByTestId('login-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => false).catch(() => true);
+		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => 'success').catch(() => 'timeout');
+		const errorAppeared = page.getByTestId('login-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => 'error').catch(() => 'timeout');
 		
-		const isSuccess = await counterPageAppeared;
-		expect(isSuccess).toBe(true); // Should navigate to counter page
+		const outcome = await Promise.race([counterPageAppeared, errorAppeared]);
+		expect(outcome).toBe('success'); // Should navigate to counter page
 	});
 
 	test('should show error for invalid login', async ({ page }) => {
@@ -178,11 +178,11 @@ test.describe('Authentication Flow', () => {
 		expect(response.status()).toBe(401);
 
 		// Wait for either success UI OR error UI (should be error)
-		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => true).catch(() => false);
-		const errorAppeared = page.getByTestId('login-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => true).catch(() => false);
+		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => 'success').catch(() => 'timeout');
+		const errorAppeared = page.getByTestId('login-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => 'error').catch(() => 'timeout');
 		
-		const hasError = await errorAppeared;
-		expect(hasError).toBe(true); // Should show error UI
+		const outcome = await Promise.race([counterPageAppeared, errorAppeared]);
+		expect(outcome).toBe('error'); // Should show error UI
 		
 		// Verify error message content
 		await expect(page.getByTestId('login-error')).toContainText('Invalid credentials');
@@ -244,11 +244,11 @@ test.describe('Authentication Flow', () => {
 		expect(response.status()).toBe(409);
 
 		// Wait for either success UI OR error UI (should be error)
-		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => true).catch(() => false);
-		const errorAppeared = page.getByTestId('register-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => true).catch(() => false);
+		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => 'success').catch(() => 'timeout');
+		const errorAppeared = page.getByTestId('register-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => 'error').catch(() => 'timeout');
 		
-		const hasError = await errorAppeared;
-		expect(hasError).toBe(true); // Should show error UI
+		const outcome = await Promise.race([counterPageAppeared, errorAppeared]);
+		expect(outcome).toBe('error'); // Should show error UI
 		
 		// Verify error message content
 		await expect(page.getByTestId('register-error')).toContainText('Username already exists');
