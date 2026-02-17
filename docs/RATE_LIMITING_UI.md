@@ -69,15 +69,18 @@ When rate limit is active:
 
 ### Message Countdown
 
-The error message includes a countdown timer provided by the server:
+The error message includes a dynamic countdown timer based on when the oldest request will slide out of the window:
 ```typescript
 // Use server-provided retryAfter
 const waitSeconds = data.retryAfter || 10;
 rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
 ```
 
-**Why use window duration?**
-The server always returns the full window duration (10 seconds) as the retry time. This provides consistent, predictable behavior for users. While this is a conservative estimate (users might be able to retry slightly sooner in some cases), it ensures they will never hit the rate limit again after waiting the specified time. The Upstash sliding window implementation uses fixed bucket boundaries internally, making it impossible to accurately predict the exact retry time without tracking individual request timestamps.
+**How it works:**
+The server calculates `retryAfter` from the `reset` timestamp provided by Upstash's sliding window rate limiter. The `reset` timestamp indicates when the oldest request will slide out of the 10-second window, allowing a new request. This means:
+- If you make 3 requests at t=0s, t=1s, t=2s and hit the limit at t=3s, you wait 7 seconds (until t=10s when the first request slides out)
+- If you make 3 requests at t=5s, t=6s, t=7s and hit the limit at t=8s, you wait 7 seconds (until t=15s when the first request slides out)
+- The wait time varies based on when your oldest request was made, reflecting true sliding window behavior
 
 ## User Experience Flow
 
@@ -86,14 +89,14 @@ The server always returns the full window duration (10 seconds) as the retry tim
 3. User clicks again (3rd time) → ✅ Success
 4. User clicks again (4th time within 10 seconds) → ❌ Rate limited
    - Error message appears below buttons
-   - Message shows "Please wait 10 seconds before trying again."
-5. User waits 10 seconds
+   - Message shows the actual wait time (e.g., "Please wait 7 seconds before trying again.")
+5. User waits for the countdown
 6. User can click again → ✅ Success
 
 ## Error Message Text Examples
 
 - Initial display: "Too many actions. Please wait before trying again."
-- With countdown: "Too many actions. Please wait 10 seconds before trying again."
+- With countdown: "Too many actions. Please wait 7 seconds before trying again." (varies based on sliding window)
 
 ## Technical Implementation
 
@@ -142,12 +145,12 @@ Content-Type: application/json
   "error": "Rate limit exceeded",
   "message": "Too many actions. Please wait before trying again.",
   "remaining": 0,
-  "retryAfter": 10
+  "retryAfter": 7
 }
 ```
 
 - `Retry-After` header: HTTP standard header indicating seconds to wait (RFC 6585)
-- `retryAfter`: Always set to the window duration (10 seconds) for consistent behavior
+- `retryAfter`: Calculated from Upstash's `reset` timestamp - indicates when the oldest request slides out of the window
 - `remaining`: Number of remaining requests in current window
 
 ## Accessibility Considerations
@@ -156,15 +159,16 @@ Content-Type: application/json
 - Color contrast meets WCAG AA standards (dark red on light pink)
 - Font size is readable (0.9rem)
 - Message is clear and actionable
-- Fixed 10-second wait time provides predictable user experience
+- Dynamic wait time accurately reflects sliding window behavior
 
 ## Testing Scenarios
 
 1. **Test Rate Limit Trigger**: Click increment 4 times rapidly → should see error after 3rd click
-2. **Test Wait Time Display**: Verify message shows "wait 10 seconds"
+2. **Test Wait Time Display**: Verify message shows accurate wait time based on sliding window
 3. **Test Auto-Dismiss**: Wait 10 seconds → error should disappear
 4. **Test Clear on New Action**: Click button after cooldown → error should clear
 5. **Test Memory Leak**: Navigate away during countdown → no console errors
+6. **Test Sliding Window**: Make requests at different intervals and verify wait times vary accordingly
 
 ## Future Enhancements (Optional)
 

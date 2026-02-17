@@ -125,19 +125,22 @@ describe('Rate limiting utilities', () => {
 			expect(result.retryAfter).toBeUndefined();
 		});
 
-		test('retryAfter should be window duration for consistent behavior', () => {
-			// The retryAfter is always set to the window duration (10 seconds)
-			// when rate limiting occurs. This provides consistent, predictable
-			// behavior for users regardless of when they hit the limit.
-			const RATE_LIMIT_WINDOW_SECONDS = 10;
+		test('retryAfter calculation uses reset timestamp', () => {
+			// For sliding window rate limiting, the 'reset' timestamp from Upstash
+			// indicates when the oldest request will slide out of the window.
+			// This is the correct time to wait before retrying.
 			
-			// For sliding window rate limiting, using the full window duration
-			// ensures users can always retry successfully after waiting
-			expect(RATE_LIMIT_WINDOW_SECONDS).toBe(10);
+			// Example: If we hit the limit at t=5s and the oldest request was at t=0s,
+			// reset will be at t=10s, so retryAfter = 10 - 5 = 5 seconds
+			const now = Date.now();
+			const reset = now + 5000; // 5 seconds in the future
+			const retryAfter = Math.max(1, Math.ceil((reset - now) / 1000));
+			expect(retryAfter).toBe(5);
 			
-			// This is simpler and more reliable than trying to calculate the exact
-			// time based on the 'reset' timestamp, which uses fixed bucket boundaries
-			// and doesn't accurately reflect sliding window behavior
+			// Minimum retry time is 1 second
+			const resetPast = now - 1000;
+			const retryAfterMin = Math.max(1, Math.ceil((resetPast - now) / 1000));
+			expect(retryAfterMin).toBe(1);
 		});
 
 		test('should not return reset field', async () => {

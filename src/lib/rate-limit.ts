@@ -43,10 +43,6 @@ export function createRateLimiter(env?: {
 	return ratelimit;
 }
 
-// Rate limit configuration
-const RATE_LIMIT_WINDOW_MS = 10 * 1000; // 10 seconds in milliseconds
-const RATE_LIMIT_WINDOW_SECONDS = RATE_LIMIT_WINDOW_MS / 1000; // 10 seconds
-
 /**
  * Checks if a user can perform a counter action based on rate limits
  * Returns { success: true } if allowed, or { success: false, retryAfter: seconds } if rate limited
@@ -72,16 +68,16 @@ export async function checkRateLimit(
 		const result = await ratelimit.limit(identifier);
 
 		if (!result.success) {
-			// For sliding window rate limiting, we use the window duration as the retry time.
-			// This is a conservative estimate that ensures users won't hit the limit again.
-			// The Upstash sliding window implementation returns a 'reset' timestamp based on
-			// fixed bucket boundaries, which doesn't accurately reflect when the next request
-			// will be allowed in a true sliding window. Using the window duration (10 seconds)
-			// provides consistent, predictable behavior for users.
+			// For sliding window rate limiting, the 'reset' timestamp indicates when
+			// the oldest request will slide out of the window, allowing a new request.
+			// Calculate how many seconds until that happens.
+			const now = Date.now();
+			const retryAfter = Math.max(1, Math.ceil((result.reset - now) / 1000));
+
 			return {
 				success: result.success,
 				remaining: result.remaining,
-				retryAfter: RATE_LIMIT_WINDOW_SECONDS
+				retryAfter
 			};
 		}
 
