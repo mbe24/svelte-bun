@@ -69,18 +69,27 @@ When rate limit is active:
 
 ### Message Countdown
 
-The error message includes a countdown timer:
+The error message includes a countdown timer calculated on the server side for accuracy:
 ```typescript
-// Calculate seconds until reset
-if (data.reset) {
+// Use retryAfter from server if available, otherwise calculate from reset
+let waitSeconds = 0;
+if (data.retryAfter) {
+    // Server-calculated retry time (more accurate for sliding windows)
+    waitSeconds = data.retryAfter;
+} else if (data.reset) {
+    // Fallback: calculate from reset timestamp
     const now = Date.now();
     const resetTime = data.reset;
-    const waitSeconds = Math.ceil((resetTime - now) / 1000);
-    if (waitSeconds > 0) {
-        rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
-    }
+    waitSeconds = Math.ceil((resetTime - now) / 1000);
+}
+
+if (waitSeconds > 0) {
+    rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
 }
 ```
+
+**Why server-side calculation?**
+The Upstash sliding window implementation returns a `reset` timestamp that represents the end of the current window bucket (like a fixed window), not when the next request will actually be available. For sliding windows, this can lead to inaccurate wait times. The server-side calculation caps the wait time at the window duration (10 seconds) for more accurate user feedback.
 
 ## User Experience Flow
 
@@ -122,10 +131,34 @@ onDestroy(() => {
 if (response.status === 429) {
     const data = await response.json();
     rateLimitError = data.message;
-    // Calculate and display countdown
+    
+    // Use server-provided retryAfter for accurate wait time
+    // The server calculates this based on the sliding window duration
+    // to avoid showing incorrect wait times caused by the reset timestamp
+    let waitSeconds = data.retryAfter || 0;
+    
+    if (waitSeconds > 0) {
+        rateLimitError = `Too many actions. Please wait ${waitSeconds} seconds before trying again.`;
+    }
+    
     // Auto-clear after 10 seconds
 }
 ```
+
+**API Response Format:**
+```json
+{
+  "error": "Rate limit exceeded",
+  "message": "Too many actions. Please wait before trying again.",
+  "reset": 1234567890000,
+  "remaining": 0,
+  "retryAfter": 10
+}
+```
+
+- `retryAfter`: Server-calculated wait time in seconds (accurate for sliding windows)
+- `reset`: Unix timestamp in milliseconds when limit resets (kept for backwards compatibility)
+- `remaining`: Number of remaining requests in current window
 
 ## Accessibility Considerations
 
