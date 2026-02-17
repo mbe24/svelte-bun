@@ -25,16 +25,6 @@ export interface FeatureFlagService {
 	 * @returns Promise resolving to whether the flag is enabled
 	 */
 	isFeatureEnabledGlobal(flagKey: string, defaultValue: boolean): Promise<boolean>;
-
-	/**
-	 * Get the payload for a feature flag
-	 * @param flagKey - The feature flag key
-	 * @param distinctId - User identifier
-	 * @returns Promise resolving to the flag payload (if any)
-	 * @remarks The return type is `unknown` because PostHog payloads can be any JSON-serializable value
-	 *          (string, number, boolean, object, array, etc.). Callers should validate and cast to the expected type.
-	 */
-	getFeatureFlagPayload(flagKey: string, distinctId: string): Promise<unknown>;
 }
 
 /**
@@ -71,21 +61,6 @@ export class PostHogFeatureFlagService implements FeatureFlagService {
 	async isFeatureEnabledGlobal(flagKey: string, defaultValue: boolean): Promise<boolean> {
 		// Use a generic distinct ID for global flags
 		return this.isFeatureEnabled(flagKey, 'global', defaultValue);
-	}
-
-	async getFeatureFlagPayload(flagKey: string, distinctId: string): Promise<unknown> {
-		const posthog = getPostHog(this.env);
-
-		if (!posthog) {
-			return null;
-		}
-
-		try {
-			return await posthog.getFeatureFlagPayload(flagKey, distinctId);
-		} catch (error) {
-			console.error(`Error getting feature flag payload for ${flagKey}:`, error);
-			return null;
-		}
 	}
 }
 

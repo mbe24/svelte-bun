@@ -33,12 +33,6 @@ describe('Feature Flags', () => {
 			expect(isEnabled).toBe(false);
 		});
 
-		test('should return null payload when PostHog is not configured', async () => {
-			const service = new PostHogFeatureFlagService();
-			const payload = await service.getFeatureFlagPayload('test-flag', 'user_123');
-			expect(payload).toBeNull();
-		});
-
 		test('should return default value when API key is empty', async () => {
 			const service = new PostHogFeatureFlagService({
 				POSTHOG_API_KEY: '',

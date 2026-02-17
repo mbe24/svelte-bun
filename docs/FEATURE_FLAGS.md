@@ -24,11 +24,6 @@ interface FeatureFlagService {
     flagKey: string,
     defaultValue: boolean
   ): Promise<boolean>;
-
-  getFeatureFlagPayload(
-    flagKey: string,
-    distinctId: string
-  ): Promise<unknown>;
 }
 ```
 
@@ -105,23 +100,6 @@ const isEnabled = await service.isFeatureEnabledGlobal(
 
 if (isEnabled) {
   // Show maintenance message
-}
-```
-
-### Getting Feature Flag Payload
-
-Feature flag payloads can contain any JSON-serializable data (strings, numbers, objects, arrays). The return type is `unknown` for type safety, so you should validate and cast to the expected type:
-
-```typescript
-const service = getFeatureFlagService(env);
-const payload = await service.getFeatureFlagPayload(
-  'feature-key',
-  'user_123'
-);
-
-if (payload) {
-  // Use payload data (e.g., configuration values)
-  const config = payload as { maxRequests: number };
 }
 ```
 
@@ -288,10 +266,10 @@ export class LaunchDarklyProvider implements FeatureFlagService {
     // Implementation here
   }
 
-  async getFeatureFlagPayload(
+  async isFeatureEnabledGlobal(
     flagKey: string,
-    distinctId: string
-  ): Promise<unknown> {
+    defaultValue: boolean
+  ): Promise<boolean> {
     // Implementation here
   }
 }
