@@ -20,7 +20,7 @@ export default defineConfig({
 	],
 
 	webServer: {
-		command: 'npm run build:preview',
+		command: 'bun run build:preview',
 		url: 'http://localhost:4173',
 		reuseExistingServer: !process.env.CI
 	}
