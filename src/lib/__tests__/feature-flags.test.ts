@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import {
-	PostHogFeatureFlagProvider,
-	getFeatureFlagProvider,
+	PostHogFeatureFlagService,
+	getFeatureFlagService,
 	FeatureFlags,
 } from '../feature-flags';
 import { shutdownPostHog } from '../posthog';
@@ -12,10 +12,10 @@ describe('Feature Flags', () => {
 		await shutdownPostHog();
 	});
 
-	describe('PostHogFeatureFlagProvider', () => {
+	describe('PostHogFeatureFlagService', () => {
 		test('should return default value when PostHog is not configured', async () => {
-			const provider = new PostHogFeatureFlagProvider();
-			const isEnabled = await provider.isFeatureEnabled(
+			const service = new PostHogFeatureFlagService();
+			const isEnabled = await service.isFeatureEnabled(
 				'test-flag',
 				'user_123',
 				true
@@ -24,8 +24,8 @@ describe('Feature Flags', () => {
 		});
 
 		test('should return default value false when PostHog is not configured', async () => {
-			const provider = new PostHogFeatureFlagProvider();
-			const isEnabled = await provider.isFeatureEnabled(
+			const service = new PostHogFeatureFlagService();
+			const isEnabled = await service.isFeatureEnabled(
 				'test-flag',
 				'user_123',
 				false
@@ -34,37 +34,55 @@ describe('Feature Flags', () => {
 		});
 
 		test('should return null payload when PostHog is not configured', async () => {
-			const provider = new PostHogFeatureFlagProvider();
-			const payload = await provider.getFeatureFlagPayload('test-flag', 'user_123');
+			const service = new PostHogFeatureFlagService();
+			const payload = await service.getFeatureFlagPayload('test-flag', 'user_123');
 			expect(payload).toBeNull();
 		});
 
 		test('should return default value when API key is empty', async () => {
-			const provider = new PostHogFeatureFlagProvider({
+			const service = new PostHogFeatureFlagService({
 				POSTHOG_API_KEY: '',
 			});
-			const isEnabled = await provider.isFeatureEnabled(
+			const isEnabled = await service.isFeatureEnabled(
 				'test-flag',
 				'user_123',
 				true
 			);
 			expect(isEnabled).toBe(true);
 		});
-	});
 
-	describe('getFeatureFlagProvider', () => {
-		test('should return a PostHogFeatureFlagProvider instance', () => {
-			const provider = getFeatureFlagProvider();
-			expect(provider).toBeInstanceOf(PostHogFeatureFlagProvider);
+		test('should check global feature flag without distinctId', async () => {
+			const service = new PostHogFeatureFlagService();
+			const isEnabled = await service.isFeatureEnabledGlobal(
+				'test-flag',
+				true
+			);
+			expect(isEnabled).toBe(true);
 		});
 
-		test('should return a provider with environment variables', () => {
+		test('should return default value for global flag when PostHog not configured', async () => {
+			const service = new PostHogFeatureFlagService();
+			const isEnabled = await service.isFeatureEnabledGlobal(
+				'test-flag',
+				false
+			);
+			expect(isEnabled).toBe(false);
+		});
+	});
+
+	describe('getFeatureFlagService', () => {
+		test('should return a PostHogFeatureFlagService instance', () => {
+			const service = getFeatureFlagService();
+			expect(service).toBeInstanceOf(PostHogFeatureFlagService);
+		});
+
+		test('should return a service with environment variables', () => {
 			const env = {
 				POSTHOG_API_KEY: 'test_key',
 				POSTHOG_HOST: 'https://app.posthog.com',
 			};
-			const provider = getFeatureFlagProvider(env);
-			expect(provider).toBeInstanceOf(PostHogFeatureFlagProvider);
+			const service = getFeatureFlagService(env);
+			expect(service).toBeInstanceOf(PostHogFeatureFlagService);
 		});
 	});
 

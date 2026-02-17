@@ -4,19 +4,24 @@ This document describes how to use feature flags in the application.
 
 ## Overview
 
-Feature flags allow you to enable or disable features for specific users or groups without deploying new code. The application uses an interface-based approach that currently supports PostHog as a backend, but can be extended to support other providers.
+Feature flags allow you to enable or disable features for specific users or groups without deploying new code. The application uses an interface-based approach that currently supports PostHog as a backend, but can be extended to support other services.
 
 ## Architecture
 
 ### Interface-Based Design
 
-The feature flag system is built around the `FeatureFlagProvider` interface, which decouples the application from any specific feature flag service:
+The feature flag system is built around the `FeatureFlagService` interface, which decouples the application from any specific feature flag service:
 
 ```typescript
-interface FeatureFlagProvider {
+interface FeatureFlagService {
   isFeatureEnabled(
     flagKey: string,
     distinctId: string,
+    defaultValue: boolean
+  ): Promise<boolean>;
+
+  isFeatureEnabledGlobal(
+    flagKey: string,
     defaultValue: boolean
   ): Promise<boolean>;
 
@@ -30,17 +35,17 @@ interface FeatureFlagProvider {
 This design ensures that:
 - The application is not tightly coupled to PostHog
 - Feature flags work even when PostHog is not configured (using defaults)
-- You can easily swap out or extend the provider in the future
+- You can easily swap out or extend the service in the future
 
 ### PostHog Implementation
 
 The default implementation uses PostHog for feature flag evaluation:
 
 ```typescript
-import { getFeatureFlagProvider, FeatureFlags } from '$lib/feature-flags';
+import { getFeatureFlagService, FeatureFlags } from '$lib/feature-flags';
 
-const provider = getFeatureFlagProvider(env);
-const isEnabled = await provider.isFeatureEnabled(
+const service = getFeatureFlagService(env);
+const isEnabled = await service.isFeatureEnabled(
   FeatureFlags.RATE_LIMIT_COUNTER,
   'user_123',
   true // default value if PostHog is unavailable
@@ -63,13 +68,13 @@ Controls whether rate limiting is applied to counter operations.
 ### Checking a Feature Flag
 
 ```typescript
-import { getFeatureFlagProvider, FeatureFlags } from '$lib/feature-flags';
+import { getFeatureFlagService, FeatureFlags } from '$lib/feature-flags';
 
 // In a server endpoint or hook
 export const POST: RequestHandler = async ({ locals, platform }) => {
-  const provider = getFeatureFlagProvider(platform?.env);
+  const service = getFeatureFlagService(platform?.env);
   
-  const isRateLimitEnabled = await provider.isFeatureEnabled(
+  const isRateLimitEnabled = await service.isFeatureEnabled(
     FeatureFlags.RATE_LIMIT_COUNTER,
     `user_${locals.userId}`,
     true // default value
@@ -83,11 +88,33 @@ export const POST: RequestHandler = async ({ locals, platform }) => {
 };
 ```
 
-### Getting Feature Flag Payload
+### Checking a Global Feature Flag
+
+For feature flags that don't require user-specific targeting, use `isFeatureEnabledGlobal`:
 
 ```typescript
-const provider = getFeatureFlagProvider(env);
-const payload = await provider.getFeatureFlagPayload(
+import { getFeatureFlagService, FeatureFlags } from '$lib/feature-flags';
+
+const service = getFeatureFlagService(env);
+
+// Check a global flag without user context
+const isEnabled = await service.isFeatureEnabledGlobal(
+  'maintenance-mode',
+  false // default value
+);
+
+if (isEnabled) {
+  // Show maintenance message
+}
+```
+
+### Getting Feature Flag Payload
+
+Feature flag payloads can contain any JSON-serializable data (strings, numbers, objects, arrays). The return type is `unknown` for type safety, so you should validate and cast to the expected type:
+
+```typescript
+const service = getFeatureFlagService(env);
+const payload = await service.getFeatureFlagPayload(
   'feature-key',
   'user_123'
 );
@@ -185,8 +212,8 @@ export const FeatureFlags = {
 2. **Use the flag in your code**:
 
 ```typescript
-const provider = getFeatureFlagProvider(env);
-const isEnabled = await provider.isFeatureEnabled(
+const service = getFeatureFlagService(env);
+const isEnabled = await service.isFeatureEnabled(
   FeatureFlags.NEW_FEATURE,
   userId,
   false // Choose appropriate default
@@ -202,8 +229,8 @@ const isEnabled = await provider.isFeatureEnabled(
 
 ```typescript
 test('should handle NEW_FEATURE flag', async () => {
-  const provider = getFeatureFlagProvider();
-  const isEnabled = await provider.isFeatureEnabled(
+  const service = getFeatureFlagService();
+  const isEnabled = await service.isFeatureEnabled(
     FeatureFlags.NEW_FEATURE,
     'user_123',
     false
@@ -223,8 +250,8 @@ export async function checkRateLimit(
   env?: { ... }
 ): Promise<{ success: boolean; ... }> {
   // Check if rate limiting feature is enabled
-  const provider = getFeatureFlagProvider(env);
-  const isRateLimitEnabled = await provider.isFeatureEnabled(
+  const service = getFeatureFlagService(env);
+  const isRateLimitEnabled = await service.isFeatureEnabled(
     FeatureFlags.RATE_LIMIT_COUNTER,
     `user_${userId}`,
     true // Default: enabled
@@ -247,12 +274,12 @@ This allows you to:
 
 ## Extending the System
 
-To add a new feature flag provider (e.g., LaunchDarkly, Unleash):
+To add a new feature flag service (e.g., LaunchDarkly, Unleash):
 
 1. **Implement the interface**:
 
 ```typescript
-export class LaunchDarklyProvider implements FeatureFlagProvider {
+export class LaunchDarklyProvider implements FeatureFlagService {
   async isFeatureEnabled(
     flagKey: string,
     distinctId: string,
@@ -273,11 +300,11 @@ export class LaunchDarklyProvider implements FeatureFlagProvider {
 2. **Update the factory function**:
 
 ```typescript
-export function getFeatureFlagProvider(env?: any): FeatureFlagProvider {
+export function getFeatureFlagService(env?: any): FeatureFlagService {
   if (env?.LAUNCHDARKLY_KEY) {
     return new LaunchDarklyProvider(env);
   }
-  return new PostHogFeatureFlagProvider(env);
+  return new PostHogFeatureFlagService(env);
 }
 ```
 

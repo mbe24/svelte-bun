@@ -1,7 +1,7 @@
 import { Redis } from '@upstash/redis/cloudflare';
 import { Ratelimit } from '@upstash/ratelimit';
 import { getEnvironmentName } from './environment';
-import { getFeatureFlagProvider, FeatureFlags } from './feature-flags';
+import { getFeatureFlagService, FeatureFlags } from './feature-flags';
 
 /**
  * Creates a rate limiter instance for counter actions
@@ -63,8 +63,8 @@ export async function checkRateLimit(
 	// Note: This makes an async call to PostHog on every rate limit check.
 	// For high-traffic scenarios, consider implementing caching with a short TTL (30-60s)
 	// to reduce latency and API calls to PostHog.
-	const featureFlagProvider = getFeatureFlagProvider(env);
-	const isRateLimitEnabled = await featureFlagProvider.isFeatureEnabled(
+	const featureFlagService = getFeatureFlagService(env);
+	const isRateLimitEnabled = await featureFlagService.isFeatureEnabled(
 		FeatureFlags.RATE_LIMIT_COUNTER,
 		`user_${userId}`,
 		true // Default to enabled (rate limiting is on by default)

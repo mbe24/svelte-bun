@@ -1,9 +1,9 @@
 import { getPostHog } from './posthog';
 
 /**
- * Feature flag interface to decouple from specific feature flag provider implementations
+ * Feature flag service interface to decouple from specific feature flag implementations
  */
-export interface FeatureFlagProvider {
+export interface FeatureFlagService {
 	/**
 	 * Check if a feature flag is enabled for a user
 	 * @param flagKey - The feature flag key
@@ -18,18 +18,29 @@ export interface FeatureFlagProvider {
 	): Promise<boolean>;
 
 	/**
+	 * Check if a feature flag is enabled without user-specific targeting
+	 * Useful for global feature flags that don't require user context
+	 * @param flagKey - The feature flag key
+	 * @param defaultValue - Default value to return if the flag cannot be evaluated
+	 * @returns Promise resolving to whether the flag is enabled
+	 */
+	isFeatureEnabledGlobal(flagKey: string, defaultValue: boolean): Promise<boolean>;
+
+	/**
 	 * Get the payload for a feature flag
 	 * @param flagKey - The feature flag key
 	 * @param distinctId - User identifier
 	 * @returns Promise resolving to the flag payload (if any)
+	 * @remarks The return type is `unknown` because PostHog payloads can be any JSON-serializable value
+	 *          (string, number, boolean, object, array, etc.). Callers should validate and cast to the expected type.
 	 */
 	getFeatureFlagPayload(flagKey: string, distinctId: string): Promise<unknown>;
 }
 
 /**
- * PostHog implementation of the feature flag provider
+ * PostHog implementation of the feature flag service
  */
-export class PostHogFeatureFlagProvider implements FeatureFlagProvider {
+export class PostHogFeatureFlagService implements FeatureFlagService {
 	constructor(
 		private env?: {
 			POSTHOG_API_KEY?: string;
@@ -55,6 +66,11 @@ export class PostHogFeatureFlagProvider implements FeatureFlagProvider {
 			console.error(`Error checking feature flag ${flagKey}:`, error);
 			return defaultValue;
 		}
+	}
+
+	async isFeatureEnabledGlobal(flagKey: string, defaultValue: boolean): Promise<boolean> {
+		// Use a generic distinct ID for global flags
+		return this.isFeatureEnabled(flagKey, 'global', defaultValue);
 	}
 
 	async getFeatureFlagPayload(flagKey: string, distinctId: string): Promise<unknown> {
@@ -89,13 +105,18 @@ export const FeatureFlags = {
 } as const;
 
 /**
- * Get a feature flag provider instance
+ * Get a feature flag service instance
  * @param env - Environment variables
- * @returns FeatureFlagProvider instance
+ * @returns FeatureFlagService instance
  */
-export function getFeatureFlagProvider(env?: {
+export function getFeatureFlagService(env?: {
 	POSTHOG_API_KEY?: string;
 	POSTHOG_HOST?: string;
-}): FeatureFlagProvider {
-	return new PostHogFeatureFlagProvider(env);
+}): FeatureFlagService {
+	return new PostHogFeatureFlagService(env);
 }
+
+/**
+ * @deprecated Use getFeatureFlagService instead
+ */
+export const getFeatureFlagProvider = getFeatureFlagService;
