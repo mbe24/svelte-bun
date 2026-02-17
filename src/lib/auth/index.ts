@@ -13,16 +13,21 @@ const isCI = process.env.CI === 'true';
 
 export async function hashPassword(password: string): Promise<string> {
 	if (isCI) {
-		// No-op in CI: just prefix with 'ci-hash:' to make it identifiable
-		return Promise.resolve(`ci-hash:${password}`);
+		// No-op in CI: add random salt to make each hash unique (for tests)
+		const salt = randomBytes(8).toString('hex');
+		return Promise.resolve(`ci-hash:${salt}:${password}`);
 	}
 	return bcrypt.hash(password, SALT_ROUNDS);
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
 	if (isCI) {
-		// No-op in CI: simple string comparison
-		return Promise.resolve(hash === `ci-hash:${password}`);
+		// No-op in CI: extract password from hash format 'ci-hash:salt:password'
+		const parts = hash.split(':');
+		if (parts.length === 3 && parts[0] === 'ci-hash') {
+			return Promise.resolve(parts[2] === password);
+		}
+		return Promise.resolve(false);
 	}
 	return bcrypt.compare(password, hash);
 }
