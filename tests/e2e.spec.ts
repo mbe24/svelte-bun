@@ -22,13 +22,21 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
 
-		// Submit registration
-		await page.click('button[type="submit"]');
+		// Submit registration and wait for navigation
+		const responsePromise = page.waitForResponse(
+			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
+			{ timeout: API_RESPONSE_TIMEOUT }
+		);
+		await page.getByRole('button', { name: /register/i }).click();
+		const response = await responsePromise;
+		
+		// Should get success response
+		expect(response.status()).toBe(200);
 
-		// Should redirect to counter page
-		await page.waitForURL('**/counter');
-		await expect(page.locator('h1')).toContainText('Counter App');
-
+		// Wait for counter page element (more reliable than URL)
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
+		await expect(page.locator('.counter-display')).toBeVisible();
+		
 		// Counter should be initialized to 0
 		await expect(page.locator('.counter-display')).toContainText('0');
 	});
@@ -40,9 +48,16 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
-		await page.click('button[type="submit"]');
+		
+		const responsePromise = page.waitForResponse(
+			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
+			{ timeout: API_RESPONSE_TIMEOUT }
+		);
+		await page.getByRole('button', { name: /register/i }).click();
+		await responsePromise;
 
-		await page.waitForURL('**/counter');
+		// Wait for counter page
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
 
 		// Increment counter
 		await page.click('.counter-button.increment');
@@ -64,24 +79,39 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
-		await page.click('button[type="submit"]');
-		await page.waitForURL('**/counter');
+		
+		const registerResponsePromise = page.waitForResponse(
+			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
+			{ timeout: API_RESPONSE_TIMEOUT }
+		);
+		await page.getByRole('button', { name: /register/i }).click();
+		await registerResponsePromise;
 
-		// Wait for logout button to be visible (counter page loads first)
-		await page.waitForSelector('.logout-button', { state: 'visible' });
+		// Wait for counter page and logout button
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
+		await expect(page.locator('.logout-button')).toBeVisible();
 
 		// Logout
 		await page.click('.logout-button');
-		await page.waitForURL('http://localhost:5173/');
+		await expect(page.locator('h1')).toContainText('Welcome to SvelteKit', { timeout: 10000 });
 
 		// Login
 		await page.click('a[href="/login"]');
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
-		await page.click('button[type="submit"]');
-
-		await page.waitForURL('**/counter');
-		await expect(page.locator('h1')).toContainText('Counter App');
+		
+		const loginResponsePromise = page.waitForResponse(
+			response => response.url().includes('/api/auth/login') && response.request().method() === 'POST',
+			{ timeout: API_RESPONSE_TIMEOUT }
+		);
+		await page.getByRole('button', { name: /^login$/i }).click();
+		const loginResponse = await loginResponsePromise;
+		
+		// Should get success response
+		expect(loginResponse.status()).toBe(200);
+		
+		// Wait for counter page
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
 	});
 
 	test('should show error for invalid login', async ({ page }) => {
@@ -89,12 +119,24 @@ test.describe('Authentication Flow', () => {
 
 		await page.fill('#username', 'nonexistent');
 		await page.fill('#password', 'wrongpass');
-		await page.click('button[type="submit"]');
+		
+		// Wait for the API response
+		const responsePromise = page.waitForResponse(
+			response => response.url().includes('/api/auth/login') && response.request().method() === 'POST',
+			{ timeout: API_RESPONSE_TIMEOUT }
+		);
+		await page.getByRole('button', { name: /^login$/i }).click();
+		const response = await responsePromise;
+		
+		// Should get error response
+		expect(response.status()).toBe(401);
 
-		// Wait for loading state to complete and error to appear
-		await page.waitForSelector('button:has-text("Login")', { timeout: API_RESPONSE_TIMEOUT });
+		// Assert error UI appears (not success UI)
 		await expect(page.getByTestId('login-error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
 		await expect(page.getByTestId('login-error')).toContainText('Invalid credentials');
+		
+		// Should stay on login page
+		expect(page.url()).toContain('/login');
 	});
 
 	test('should show error for duplicate username', async ({ page }) => {
@@ -104,26 +146,42 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
-		await page.click('button[type="submit"]');
-		await page.waitForURL('**/counter');
+		
+		const firstRegisterPromise = page.waitForResponse(
+			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
+			{ timeout: API_RESPONSE_TIMEOUT }
+		);
+		await page.getByRole('button', { name: /register/i }).click();
+		await firstRegisterPromise;
 
-		// Wait for logout button to be visible before clicking
-		await page.waitForSelector('.logout-button', { state: 'visible' });
-
-		// Logout
+		// Wait for counter page and logout
+		await expect(page.locator('h1')).toContainText('Counter App', { timeout: 10000 });
+		await expect(page.locator('.logout-button')).toBeVisible();
 		await page.click('.logout-button');
-		await page.waitForURL('http://localhost:5173/');
+		await expect(page.locator('h1')).toContainText('Welcome to SvelteKit', { timeout: 10000 });
 
 		// Try to register with same username
 		await page.goto('http://localhost:5173/register');
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
-		await page.click('button[type="submit"]');
+		
+		// Wait for the API response
+		const responsePromise = page.waitForResponse(
+			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
+			{ timeout: API_RESPONSE_TIMEOUT }
+		);
+		await page.getByRole('button', { name: /register/i }).click();
+		const response = await responsePromise;
+		
+		// Should get conflict response
+		expect(response.status()).toBe(409);
 
-		// Wait for loading state to complete and error to appear
-		await page.waitForSelector('button:has-text("Register")', { timeout: API_RESPONSE_TIMEOUT });
+		// Assert error UI appears (not success UI)
 		await expect(page.getByTestId('register-error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
 		await expect(page.getByTestId('register-error')).toContainText('Username already exists');
+		
+		// Should stay on register page
+		expect(page.url()).toContain('/register');
 	});
 });
