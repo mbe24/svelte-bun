@@ -60,6 +60,9 @@ export async function checkRateLimit(
 	}
 ): Promise<{ success: boolean; remaining?: number; retryAfter?: number }> {
 	// Check if rate limiting feature is enabled via feature flag
+	// Note: This makes an async call to PostHog on every rate limit check.
+	// For high-traffic scenarios, consider implementing caching with a short TTL (30-60s)
+	// to reduce latency and API calls to PostHog.
 	const featureFlagProvider = getFeatureFlagProvider(env);
 	const isRateLimitEnabled = await featureFlagProvider.isFeatureEnabled(
 		FeatureFlags.RATE_LIMIT_COUNTER,
