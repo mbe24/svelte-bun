@@ -49,7 +49,7 @@
 		<h1>Register</h1>
 		<p class="subtitle">Create a new account</p>
 
-		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} data-testid="register-form">
 			<div class="form-group">
 				<label for="username">Username</label>
 				<input
@@ -87,7 +87,7 @@
 				<div class="error" data-testid="register-error">{error}</div>
 			{/if}
 
-			<button type="submit" class="button-primary" disabled={loading}>
+			<button type="submit" class="button-primary" disabled={loading} data-testid="register-submit">
 				{loading ? 'Registering...' : 'Register'}
 			</button>
 		</form>

@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test';
 const API_RESPONSE_TIMEOUT = 35000; // 35s for slow API calls (telemetry, database)
 const ERROR_VISIBILITY_TIMEOUT = 5000; // 5s for error message to appear
 const PAGE_LOAD_TIMEOUT = 10000; // 10s for page content to load
+const REQUEST_START_TIMEOUT = 5000; // 5s for request to be initiated
 
 test.describe('Authentication Flow', () => {
 	const testUsername = `testuser_${Date.now()}`;
@@ -23,19 +24,33 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
 
-		// Submit registration and wait for navigation
+		// Wait for both request and response
+		const requestPromise = page.waitForRequest(
+			request => request.url().includes('/api/auth/register') && request.method() === 'POST',
+			{ timeout: REQUEST_START_TIMEOUT }
+		);
 		const responsePromise = page.waitForResponse(
 			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
-		await page.getByRole('button', { name: /register/i }).click();
+		
+		await page.getByTestId('register-submit').click();
+		
+		// Ensure request was sent
+		await requestPromise;
 		const response = await responsePromise;
 		
 		// Should get success response
 		expect(response.status()).toBe(200);
 
-		// Wait for counter page element (more reliable than URL)
-		await expect(page.locator('h1')).toContainText('Counter App', { timeout: PAGE_LOAD_TIMEOUT });
+		// Wait for either success UI (counter page) OR error UI
+		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => true).catch(() => false);
+		const errorAppeared = page.getByTestId('register-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => false).catch(() => true);
+		
+		const isSuccess = await counterPageAppeared;
+		expect(isSuccess).toBe(true); // Should navigate to counter page
+		
+		// Verify counter display is visible
 		await expect(page.locator('.counter-display')).toBeVisible();
 		
 		// Counter should be initialized to 0
@@ -50,11 +65,17 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
 		
+		const requestPromise = page.waitForRequest(
+			request => request.url().includes('/api/auth/register') && request.method() === 'POST',
+			{ timeout: REQUEST_START_TIMEOUT }
+		);
 		const responsePromise = page.waitForResponse(
 			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
-		await page.getByRole('button', { name: /register/i }).click();
+		
+		await page.getByTestId('register-submit').click();
+		await requestPromise;
 		await responsePromise;
 
 		// Wait for counter page
@@ -81,11 +102,17 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
 		
+		const registerRequestPromise = page.waitForRequest(
+			request => request.url().includes('/api/auth/register') && request.method() === 'POST',
+			{ timeout: REQUEST_START_TIMEOUT }
+		);
 		const registerResponsePromise = page.waitForResponse(
 			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
-		await page.getByRole('button', { name: /register/i }).click();
+		
+		await page.getByTestId('register-submit').click();
+		await registerRequestPromise;
 		await registerResponsePromise;
 
 		// Wait for counter page and logout button
@@ -101,18 +128,28 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#username', username);
 		await page.fill('#password', testPassword);
 		
+		const loginRequestPromise = page.waitForRequest(
+			request => request.url().includes('/api/auth/login') && request.method() === 'POST',
+			{ timeout: REQUEST_START_TIMEOUT }
+		);
 		const loginResponsePromise = page.waitForResponse(
 			response => response.url().includes('/api/auth/login') && response.request().method() === 'POST',
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
-		await page.getByRole('button', { name: /^login$/i }).click();
+		
+		await page.getByTestId('login-submit').click();
+		await loginRequestPromise;
 		const loginResponse = await loginResponsePromise;
 		
 		// Should get success response
 		expect(loginResponse.status()).toBe(200);
 		
-		// Wait for counter page
-		await expect(page.locator('h1')).toContainText('Counter App', { timeout: PAGE_LOAD_TIMEOUT });
+		// Wait for either success UI (counter page) OR error UI
+		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => true).catch(() => false);
+		const errorAppeared = page.getByTestId('login-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => false).catch(() => true);
+		
+		const isSuccess = await counterPageAppeared;
+		expect(isSuccess).toBe(true); // Should navigate to counter page
 	});
 
 	test('should show error for invalid login', async ({ page }) => {
@@ -121,19 +158,33 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#username', 'nonexistent');
 		await page.fill('#password', 'wrongpass');
 		
-		// Wait for the API response
+		// Wait for both request and response
+		const requestPromise = page.waitForRequest(
+			request => request.url().includes('/api/auth/login') && request.method() === 'POST',
+			{ timeout: REQUEST_START_TIMEOUT }
+		);
 		const responsePromise = page.waitForResponse(
 			response => response.url().includes('/api/auth/login') && response.request().method() === 'POST',
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
-		await page.getByRole('button', { name: /^login$/i }).click();
+		
+		await page.getByTestId('login-submit').click();
+		
+		// Ensure request was sent
+		await requestPromise;
 		const response = await responsePromise;
 		
 		// Should get error response
 		expect(response.status()).toBe(401);
 
-		// Assert error UI appears (not success UI)
-		await expect(page.getByTestId('login-error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
+		// Wait for either success UI OR error UI (should be error)
+		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => true).catch(() => false);
+		const errorAppeared = page.getByTestId('login-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => true).catch(() => false);
+		
+		const hasError = await errorAppeared;
+		expect(hasError).toBe(true); // Should show error UI
+		
+		// Verify error message content
 		await expect(page.getByTestId('login-error')).toContainText('Invalid credentials');
 		
 		// Should stay on login page
@@ -148,12 +199,18 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
 		
-		const firstRegisterPromise = page.waitForResponse(
+		const firstRegisterRequestPromise = page.waitForRequest(
+			request => request.url().includes('/api/auth/register') && request.method() === 'POST',
+			{ timeout: REQUEST_START_TIMEOUT }
+		);
+		const firstRegisterResponsePromise = page.waitForResponse(
 			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
-		await page.getByRole('button', { name: /register/i }).click();
-		await firstRegisterPromise;
+		
+		await page.getByTestId('register-submit').click();
+		await firstRegisterRequestPromise;
+		await firstRegisterResponsePromise;
 
 		// Wait for counter page and logout
 		await expect(page.locator('h1')).toContainText('Counter App', { timeout: PAGE_LOAD_TIMEOUT });
@@ -167,19 +224,33 @@ test.describe('Authentication Flow', () => {
 		await page.fill('#password', testPassword);
 		await page.fill('#confirm-password', testPassword);
 		
-		// Wait for the API response
+		// Wait for both request and response
+		const requestPromise = page.waitForRequest(
+			request => request.url().includes('/api/auth/register') && request.method() === 'POST',
+			{ timeout: REQUEST_START_TIMEOUT }
+		);
 		const responsePromise = page.waitForResponse(
 			response => response.url().includes('/api/auth/register') && response.request().method() === 'POST',
 			{ timeout: API_RESPONSE_TIMEOUT }
 		);
-		await page.getByRole('button', { name: /register/i }).click();
+		
+		await page.getByTestId('register-submit').click();
+		
+		// Ensure request was sent
+		await requestPromise;
 		const response = await responsePromise;
 		
 		// Should get conflict response
 		expect(response.status()).toBe(409);
 
-		// Assert error UI appears (not success UI)
-		await expect(page.getByTestId('register-error')).toBeVisible({ timeout: ERROR_VISIBILITY_TIMEOUT });
+		// Wait for either success UI OR error UI (should be error)
+		const counterPageAppeared = page.locator('h1').filter({ hasText: 'Counter App' }).waitFor({ timeout: PAGE_LOAD_TIMEOUT }).then(() => true).catch(() => false);
+		const errorAppeared = page.getByTestId('register-error').waitFor({ state: 'visible', timeout: ERROR_VISIBILITY_TIMEOUT }).then(() => true).catch(() => false);
+		
+		const hasError = await errorAppeared;
+		expect(hasError).toBe(true); // Should show error UI
+		
+		// Verify error message content
 		await expect(page.getByTestId('register-error')).toContainText('Username already exists');
 		
 		// Should stay on register page
