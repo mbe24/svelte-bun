@@ -133,7 +133,15 @@ export function initTracer(env?: {
 	}
 
 	// Determine exporter type
-	const exporterType = env?.TRACE_EXPORTER?.toLowerCase() || 'otlp';
+	// Default to 'memory' in test/CI environments to avoid requiring PostHog secrets
+	// Check for common test/CI environment indicators
+	const isTestOrCI = typeof process !== 'undefined' && 
+		(process.env?.NODE_ENV === 'test' || 
+		 process.env?.CI === 'true' ||
+		 process.env?.VITEST === 'true');
+	
+	const exporterType = env?.TRACE_EXPORTER?.toLowerCase() || 
+		(isTestOrCI ? 'memory' : 'otlp');
 	
 	// Create resource with service info
 	// Use getServiceName to derive from ENVIRONMENT/CF_PAGES_BRANCH, 
@@ -193,9 +201,10 @@ export function initTracer(env?: {
 			spanProcessor = new BatchSpanProcessor(otlpExporter);
 			console.log('[Tracing] Initialized with OTLP exporter to', endpoint);
 		} else {
-			console.warn('[Tracing] No POSTHOG_API_KEY provided, tracing disabled');
-			// Create a no-op processor
-			spanProcessor = new SimpleSpanProcessor(new InMemorySpanExporter());
+			console.warn('[Tracing] No POSTHOG_API_KEY provided, using memory exporter for testing');
+			// Use memory exporter when PostHog API key is missing (e.g., in CI/tests)
+			memoryExporter = new InMemorySpanExporter();
+			spanProcessor = new SimpleSpanProcessor(memoryExporter);
 		}
 	}
 
