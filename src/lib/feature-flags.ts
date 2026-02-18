@@ -299,20 +299,8 @@ export class PostHogFeatureFlagService implements FeatureFlagService {
 		try {
 			const isEnabled = await posthog.isFeatureEnabled(flagKey, distinctId);
 			
-			// Debug log to understand what PostHog returns
-			console.log(`[Feature Flag Debug] PostHog returned for "${flagKey}": ${JSON.stringify(isEnabled)} (type: ${typeof isEnabled}), will invert: ${isEnabled !== undefined && isEnabled !== null ? !isEnabled : defaultValue}`);
-			
-			// IMPORTANT: PostHog's isFeatureEnabled appears to return inverted values
-			// When a flag is "enabled" in PostHog UI, it returns false
-			// When a flag is "disabled" in PostHog UI, it returns true
-			// So we need to invert the boolean value
-			let result: boolean;
-			if (isEnabled === undefined || isEnabled === null) {
-				result = defaultValue;
-			} else {
-				// Invert the boolean value from PostHog
-				result = !Boolean(isEnabled);
-			}
+			// Use the value from PostHog, or default if undefined/null
+			const result = isEnabled !== undefined && isEnabled !== null ? isEnabled : defaultValue;
 
 			// Cache the result
 			this.setCachedValue(cacheKey, result);
