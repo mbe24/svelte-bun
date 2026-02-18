@@ -33,6 +33,7 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes, defaultResource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import { getServiceName } from './environment';
 
 // Global tracer instance
 let tracerProvider: BasicTracerProvider | null = null;
@@ -66,44 +67,47 @@ function shouldSample(isError: boolean, sampleRate: number): boolean {
 }
 
 /**
- * Get OTLP endpoint for PostHog traces
+ * Get OTLP base endpoint for PostHog traces
+ * 
+ * This function returns the base URL without path suffix, matching the pattern
+ * used in telemetry.ts. The path suffix (/v1/traces) is appended when creating
+ * the exporter.
  * 
  * This function:
- * - Returns POSTHOG_OTLP_HOST if explicitly set (should be full URL with path)
- * - Otherwise, automatically derives endpoint from POSTHOG_HOST and appends /v1/traces
+ * - Returns POSTHOG_OTLP_HOST if explicitly set (base URL without path)
+ * - Otherwise, automatically derives base endpoint from POSTHOG_HOST
  * - Falls back to US ingestion endpoint if mapping fails
  */
 function getOTLPTraceEndpoint(posthogHost: string, posthogOtlpHost?: string): string {
 	// If OTLP host is explicitly set and not empty, use it as-is
-	// User should provide full URL including path (e.g., https://eu.i.posthog.com/v1/traces)
 	if (posthogOtlpHost && posthogOtlpHost.length > 0) {
 		return posthogOtlpHost;
 	}
 	
-	// Otherwise, derive from posthogHost and append /v1/traces
+	// Otherwise, derive from posthogHost
 	try {
 		const url = new URL(posthogHost);
 		const hostname = url.hostname.toLowerCase();
 		
-		// If already using ingestion endpoint, append /v1/traces
+		// If already using ingestion endpoint, return as-is
 		if (hostname.includes('.i.posthog.com')) {
-			return `${posthogHost}/v1/traces`;
+			return posthogHost;
 		}
 		
-		// Map dashboard URLs to OTLP trace endpoints
+		// Map dashboard URLs to OTLP ingestion base endpoints
 		if (hostname === 'eu.posthog.com' || hostname === 'app.eu.posthog.com') {
-			return 'https://eu.i.posthog.com/v1/traces';
+			return 'https://eu.i.posthog.com';
 		}
 		
 		if (hostname === 'app.posthog.com' || hostname === 'us.posthog.com' || hostname === 'posthog.com') {
-			return 'https://us.i.posthog.com/v1/traces';
+			return 'https://us.i.posthog.com';
 		}
 		
-		// For self-hosted, assume OTLP is at same host and append /v1/traces
-		return `${posthogHost}/v1/traces`;
+		// For self-hosted, assume OTLP is at same host
+		return posthogHost;
 	} catch (e) {
 		console.warn('[Tracing] Failed to parse PostHog host URL:', posthogHost, e);
-		return 'https://us.i.posthog.com/v1/traces';
+		return 'https://us.i.posthog.com';
 	}
 }
 
@@ -119,6 +123,8 @@ export function initTracer(env?: {
 	APP_RELEASE?: string;
 	TRACE_EXPORTER?: string;
 	OTLP_HEADERS?: string;
+	ENVIRONMENT?: string;
+	CF_PAGES_BRANCH?: string;
 }): void {
 	if (isInitialized && tracerProvider) {
 		return; // Already initialized
@@ -128,7 +134,9 @@ export function initTracer(env?: {
 	const exporterType = env?.TRACE_EXPORTER?.toLowerCase() || 'otlp';
 	
 	// Create resource with service info
-	const serviceName = env?.SERVICE_NAME || 'svelte-bun';
+	// Use getServiceName to derive from ENVIRONMENT/CF_PAGES_BRANCH, 
+	// or fall back to SERVICE_NAME if explicitly set
+	const serviceName = env?.SERVICE_NAME || getServiceName(env);
 	const serviceVersion = env?.APP_RELEASE || 'unknown';
 	
 	const resource = defaultResource().merge(resourceFromAttributes({
@@ -154,7 +162,9 @@ export function initTracer(env?: {
 		const posthogApiKey = env?.POSTHOG_API_KEY;
 		
 		if (posthogApiKey) {
-			const endpoint = getOTLPTraceEndpoint(posthogHost, env?.POSTHOG_OTLP_HOST);
+			const baseEndpoint = getOTLPTraceEndpoint(posthogHost, env?.POSTHOG_OTLP_HOST);
+			// Append path suffix to base endpoint, matching pattern in telemetry.ts
+			const endpoint = `${baseEndpoint}/v1/traces`;
 			
 			// Parse additional OTLP headers if provided
 			let headers: Record<string, string> = {
