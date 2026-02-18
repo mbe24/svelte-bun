@@ -135,6 +135,41 @@ Feature flag values are cached to improve performance and reduce API calls to Po
 - To see changes faster, reduce the cache TTL (e.g., set to 60000 for 1 minute)
 - No page reload or server restart required - cache expiration is automatic
 
+### Observability & Debugging
+
+Feature flag evaluations are automatically logged to PostHog OTLP for debugging and monitoring:
+
+**What's logged:**
+- Feature flag key that was evaluated
+- Distinct ID (user identifier or 'global' for global flags)
+- Evaluation result (true/false)
+- Default value used
+- Cache hit/miss status
+- Source of the value (cache or PostHog API)
+
+**Log attributes:**
+```
+feature_flag.key: "rate-limit-counter"
+feature_flag.distinct_id: "global"
+feature_flag.result: "true"
+feature_flag.default_value: "true"
+feature_flag.cache_hit: "true"
+feature_flag.source: "cache"
+span.kind: "feature_flag"
+```
+
+**Viewing logs:**
+- Logs appear in PostHog under "Logs" section
+- Filter by `span.kind: feature_flag` to see only feature flag evaluations
+- Use `feature_flag.key` to filter for specific flags
+- Severity level: DEBUG (non-intrusive)
+
+This helps you understand:
+- Which feature flags are being evaluated
+- How often cache hits vs API calls occur
+- When flags change their values
+- Performance impact of feature flag checks
+
 ### Without PostHog
 
 When PostHog is not configured:
