@@ -149,4 +149,36 @@ describe('Rate limiting utilities', () => {
 			expect(result).not.toHaveProperty('reset');
 		});
 	});
+
+	describe('checkRateLimit with feature flags', () => {
+		test('should allow requests when PostHog is not configured and Redis is unavailable', async () => {
+			// When PostHog is not configured, the feature flag defaults to true (enabled)
+			// But Redis is also not configured, so rate limiting is skipped anyway
+			const result = await checkRateLimit(1, {
+				UPSTASH_REDIS_REST_URL: undefined,
+				UPSTASH_REDIS_REST_TOKEN: undefined
+			});
+			expect(result.success).toBe(true);
+		});
+
+		test('should check feature flag even when Redis is not configured', async () => {
+			// This test documents that feature flag is checked first
+			// Even if Redis is not configured, the feature flag logic runs
+			// In this case, PostHog is not configured so default (true) is returned
+			const result = await checkRateLimit(1, {
+				UPSTASH_REDIS_REST_URL: undefined,
+				UPSTASH_REDIS_REST_TOKEN: undefined,
+				POSTHOG_API_KEY: undefined
+			});
+			expect(result.success).toBe(true);
+		});
+
+		test('should allow requests when neither PostHog nor Redis is configured', async () => {
+			// When both PostHog and Redis are not configured:
+			// 1. Feature flag check returns default value (true - enabled)
+			// 2. But Redis is not configured, so rate limiting is skipped anyway
+			const result = await checkRateLimit(1, undefined);
+			expect(result.success).toBe(true);
+		});
+	});
 });

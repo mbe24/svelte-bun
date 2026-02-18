@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis/cloudflare';
 import { Ratelimit } from '@upstash/ratelimit';
 import { getEnvironmentName } from './environment';
+import { getFeatureFlagService, FeatureFlags } from './feature-flags';
 
 /**
  * Creates a rate limiter instance for counter actions
@@ -54,8 +55,27 @@ export async function checkRateLimit(
 		UPSTASH_REDIS_REST_TOKEN?: string;
 		ENVIRONMENT?: string;
 		CF_PAGES_BRANCH?: string;
+		POSTHOG_API_KEY?: string;
+		POSTHOG_HOST?: string;
+		POSTHOG_OTLP_HOST?: string;
+		FEATURE_FLAG_CACHE_TTL_MS?: string;
 	}
 ): Promise<{ success: boolean; remaining?: number; retryAfter?: number }> {
+	// Check if rate limiting feature is enabled via feature flag
+	// Feature flag values are cached to reduce API calls to PostHog
+	// Cache TTL can be configured via FEATURE_FLAG_CACHE_TTL_MS env variable (default: 10 minutes)
+	// Feature flag evaluations are logged to PostHog OTLP for debugging
+	const featureFlagService = getFeatureFlagService(env);
+	const isRateLimitEnabled = await featureFlagService.isFeatureEnabledGlobal(
+		FeatureFlags.RATE_LIMIT_COUNTER,
+		true // Default to enabled (rate limiting is on by default)
+	);
+
+	// If feature flag is disabled, allow all requests
+	if (!isRateLimitEnabled) {
+		return { success: true };
+	}
+
 	const ratelimit = createRateLimiter(env);
 
 	// If rate limiting is not configured, allow all requests
