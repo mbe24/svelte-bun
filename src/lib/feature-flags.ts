@@ -254,7 +254,7 @@ export class PostHogFeatureFlagService implements FeatureFlagService {
 		}
 
 		const now = Date.now();
-		if (now > entry.expiresAt) {
+		if (now >= entry.expiresAt) {
 			// Cache expired, remove it
 			this.cache.delete(cacheKey);
 			return null;
