@@ -207,11 +207,11 @@ export function initTracer(env?: {
 		spanProcessors: spanProcessor ? [spanProcessor] : [],
 	});
 
-	// Register the provider globally
-	tracerProvider.register({
-		// Set up W3C trace context propagation
-		propagator: new W3CTraceContextPropagator(),
-	});
+	// Set the global tracer provider
+	trace.setGlobalTracerProvider(tracerProvider);
+	
+	// Set the global propagator for W3C trace context propagation
+	propagation.setGlobalPropagator(new W3CTraceContextPropagator());
 
 	isInitialized = true;
 }
