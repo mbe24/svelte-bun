@@ -23,13 +23,13 @@ import {
 	ROOT_CONTEXT
 } from '@opentelemetry/api';
 import { 
-	BasicTracerProvider, 
+	WebTracerProvider,
 	BatchSpanProcessor,
 	SimpleSpanProcessor,
 	ConsoleSpanExporter,
 	InMemorySpanExporter,
 	type ReadableSpan
-} from '@opentelemetry/sdk-trace-base';
+} from '@opentelemetry/sdk-trace-web';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes, defaultResource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
@@ -37,7 +37,7 @@ import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { getServiceName, getEnvironmentName } from './environment';
 
 // Global tracer instance
-let tracerProvider: BasicTracerProvider | null = null;
+let tracerProvider: WebTracerProvider | null = null;
 let memoryExporter: InMemorySpanExporter | null = null;
 let isInitialized = false;
 
@@ -146,18 +146,18 @@ export function initTracer(env?: {
 		[ATTR_SERVICE_VERSION]: serviceVersion,
 	}));
 
-	// Setup span processors based on exporter type
-	const spanProcessors = [];
+	// Setup span processor based on exporter type
+	let spanProcessor;
 	
 	if (exporterType === 'memory') {
 		// Memory exporter for testing
 		// Use SimpleSpanProcessor for immediate, synchronous export (no batching)
 		memoryExporter = new InMemorySpanExporter();
-		spanProcessors.push(new SimpleSpanProcessor(memoryExporter));
+		spanProcessor = new SimpleSpanProcessor(memoryExporter);
 		console.log('[Tracing] Initialized with memory exporter for testing');
 	} else if (exporterType === 'console') {
 		// Console exporter for debugging
-		spanProcessors.push(new BatchSpanProcessor(new ConsoleSpanExporter()));
+		spanProcessor = new BatchSpanProcessor(new ConsoleSpanExporter());
 		console.log('[Tracing] Initialized with console exporter for debugging');
 	} else {
 		// OTLP exporter for PostHog
@@ -188,21 +188,23 @@ export function initTracer(env?: {
 				headers,
 			});
 			
-			spanProcessors.push(new BatchSpanProcessor(otlpExporter));
+			spanProcessor = new BatchSpanProcessor(otlpExporter);
 			console.log('[Tracing] Initialized with OTLP exporter to', endpoint);
 		} else {
 			console.warn('[Tracing] No POSTHOG_API_KEY provided, tracing disabled');
+			// Create a no-op processor
+			spanProcessor = new SimpleSpanProcessor(new InMemorySpanExporter());
 		}
 	}
 
-	// Create tracer provider with resource
-	tracerProvider = new BasicTracerProvider({
+	// Create tracer provider with resource and span processor
+	tracerProvider = new WebTracerProvider({
 		resource,
 	});
 
-	// Add span processors
-	for (const processor of spanProcessors) {
-		tracerProvider.addSpanProcessor(processor);
+	// Add the span processor using the public API
+	if (spanProcessor) {
+		tracerProvider.addSpanProcessor(spanProcessor);
 	}
 
 	// Set the global tracer provider and propagator
