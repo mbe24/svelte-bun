@@ -142,12 +142,10 @@ export function initTracer(env?: {
 	// Use APP_RELEASE if set, otherwise default to ENVIRONMENT name
 	const serviceVersion = env?.APP_RELEASE || getEnvironmentName(env);
 	
-	const resource = Resource.default().merge(
-		new Resource({
-			[ATTR_SERVICE_NAME]: serviceName,
-			[ATTR_SERVICE_VERSION]: serviceVersion,
-		})
-	);
+	const resource = new Resource({
+		[ATTR_SERVICE_NAME]: serviceName,
+		[ATTR_SERVICE_VERSION]: serviceVersion,
+	});
 
 	// Setup span processor based on exporter type
 	let spanProcessor: SpanProcessor;
