@@ -22,13 +22,14 @@ import {
 	propagation,
 	ROOT_CONTEXT
 } from '@opentelemetry/api';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { 
+	BasicTracerProvider,
 	BatchSpanProcessor,
 	SimpleSpanProcessor,
 	ConsoleSpanExporter,
 	InMemorySpanExporter,
-	type ReadableSpan
+	type ReadableSpan,
+	type SpanProcessor
 } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes, defaultResource } from '@opentelemetry/resources';
@@ -37,7 +38,7 @@ import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { getServiceName, getEnvironmentName } from './environment';
 
 // Global tracer instance
-let tracerProvider: NodeTracerProvider | null = null;
+let tracerProvider: BasicTracerProvider | null = null;
 let memoryExporter: InMemorySpanExporter | null = null;
 let isInitialized = false;
 
@@ -141,13 +142,13 @@ export function initTracer(env?: {
 	// Use APP_RELEASE if set, otherwise default to ENVIRONMENT name
 	const serviceVersion = env?.APP_RELEASE || getEnvironmentName(env);
 	
-	const resource = defaultResource().merge(resourceFromAttributes({
+	const resource = resourceFromAttributes({
 		[ATTR_SERVICE_NAME]: serviceName,
 		[ATTR_SERVICE_VERSION]: serviceVersion,
-	}));
+	});
 
 	// Setup span processor based on exporter type
-	let spanProcessor;
+	let spanProcessor: SpanProcessor;
 	
 	if (exporterType === 'memory') {
 		// Memory exporter for testing
@@ -197,20 +198,20 @@ export function initTracer(env?: {
 		}
 	}
 
-	// Create tracer provider with resource
-	tracerProvider = new NodeTracerProvider({
-		resource,
-	});
+	// Create a custom tracer provider that extends BasicTracerProvider
+	// BasicTracerProvider is the correct choice for Cloudflare Workers (not Node or Web specific)
+	tracerProvider = new (class extends BasicTracerProvider {
+		constructor() {
+			super({ resource });
+			// Register span processor using internal API
+			if (spanProcessor) {
+				(this as any).addSpanProcessor(spanProcessor);
+			}
+		}
+	})();
 
-	// Add the span processor - NodeTracerProvider has this method
-	if (spanProcessor) {
-		tracerProvider.addSpanProcessor(spanProcessor);
-	}
-
-	// Register the tracer provider and set propagator
-	tracerProvider.register({
-		propagator: new W3CTraceContextPropagator(),
-	});
+	// Set up W3C trace context propagation
+	propagation.setGlobalPropagator(new W3CTraceContextPropagator());
 
 	// Set the global tracer provider
 	trace.setGlobalTracerProvider(tracerProvider);
