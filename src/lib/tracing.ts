@@ -32,7 +32,7 @@ import {
 	type SpanProcessor
 } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { resourceFromAttributes, defaultResource } from '@opentelemetry/resources';
+import { Resource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { getServiceName, getEnvironmentName } from './environment';
@@ -142,10 +142,12 @@ export function initTracer(env?: {
 	// Use APP_RELEASE if set, otherwise default to ENVIRONMENT name
 	const serviceVersion = env?.APP_RELEASE || getEnvironmentName(env);
 	
-	const resource = resourceFromAttributes({
-		[ATTR_SERVICE_NAME]: serviceName,
-		[ATTR_SERVICE_VERSION]: serviceVersion,
-	});
+	const resource = Resource.default().merge(
+		new Resource({
+			[ATTR_SERVICE_NAME]: serviceName,
+			[ATTR_SERVICE_VERSION]: serviceVersion,
+		})
+	);
 
 	// Setup span processor based on exporter type
 	let spanProcessor: SpanProcessor;
