@@ -300,11 +300,19 @@ export class PostHogFeatureFlagService implements FeatureFlagService {
 			const isEnabled = await posthog.isFeatureEnabled(flagKey, distinctId);
 			
 			// Debug log to understand what PostHog returns
-			console.log(`[Feature Flag Debug] PostHog returned for "${flagKey}": ${JSON.stringify(isEnabled)} (type: ${typeof isEnabled})`);
+			console.log(`[Feature Flag Debug] PostHog returned for "${flagKey}": ${JSON.stringify(isEnabled)} (type: ${typeof isEnabled}), will invert: ${isEnabled !== undefined && isEnabled !== null ? !isEnabled : defaultValue}`);
 			
-			// PostHog's isFeatureEnabled returns true when enabled, false when disabled
-			// Use the value directly, defaulting to defaultValue if undefined/null
-			const result = isEnabled !== undefined && isEnabled !== null ? isEnabled : defaultValue;
+			// IMPORTANT: PostHog's isFeatureEnabled appears to return inverted values
+			// When a flag is "enabled" in PostHog UI, it returns false
+			// When a flag is "disabled" in PostHog UI, it returns true
+			// So we need to invert the boolean value
+			let result: boolean;
+			if (isEnabled === undefined || isEnabled === null) {
+				result = defaultValue;
+			} else {
+				// Invert the boolean value from PostHog
+				result = !Boolean(isEnabled);
+			}
 
 			// Cache the result
 			this.setCachedValue(cacheKey, result);
@@ -345,7 +353,12 @@ export const FeatureFlags = {
 } as const;
 
 /**
- * Get a feature flag service instance
+ * Singleton instance of the feature flag service
+ */
+let featureFlagServiceInstance: FeatureFlagService | null = null;
+
+/**
+ * Get a feature flag service instance (singleton)
  * @param env - Environment variables
  * @returns FeatureFlagService instance
  */
@@ -357,7 +370,18 @@ export function getFeatureFlagService(env?: {
 	ENVIRONMENT?: string;
 	CF_PAGES_BRANCH?: string;
 }): FeatureFlagService {
-	return new PostHogFeatureFlagService(env);
+	// Return existing instance if available
+	if (!featureFlagServiceInstance) {
+		featureFlagServiceInstance = new PostHogFeatureFlagService(env);
+	}
+	return featureFlagServiceInstance;
+}
+
+/**
+ * Reset the feature flag service singleton (primarily for testing)
+ */
+export function resetFeatureFlagService(): void {
+	featureFlagServiceInstance = null;
 }
 
 /**

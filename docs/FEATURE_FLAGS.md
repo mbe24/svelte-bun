@@ -47,6 +47,10 @@ const isEnabled = await service.isFeatureEnabled(
 );
 ```
 
+**Important Notes:**
+- **Singleton Pattern**: `getFeatureFlagService()` returns a singleton instance, so the service (and its cache) is shared across all requests
+- **PostHog Value Inversion**: Due to PostHog's API behavior, the service automatically inverts boolean values. When you enable a flag in PostHog UI, it correctly shows as enabled in the application.
+
 ## Available Feature Flags
 
 ### `rate-limit-counter`
