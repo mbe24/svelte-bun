@@ -199,23 +199,20 @@ export function initTracer(env?: {
 		}
 	}
 
-	// Create a custom tracer provider that extends BasicTracerProvider
+	// Create tracer provider
 	// BasicTracerProvider is the correct choice for Cloudflare Workers (not Node or Web specific)
-	tracerProvider = new (class extends BasicTracerProvider {
-		constructor() {
-			super({ resource });
-			// Register span processor using internal API
-			if (spanProcessor) {
-				(this as any).addSpanProcessor(spanProcessor);
-			}
-		}
-	})();
+	tracerProvider = new BasicTracerProvider({
+		resource,
+	});
 
-	// Set up W3C trace context propagation
-	propagation.setGlobalPropagator(new W3CTraceContextPropagator());
+	// Register span processor using the public API
+	tracerProvider.addSpanProcessor(spanProcessor);
 
-	// Set the global tracer provider
-	trace.setGlobalTracerProvider(tracerProvider);
+	// Register the provider globally
+	tracerProvider.register({
+		// Set up W3C trace context propagation
+		propagator: new W3CTraceContextPropagator(),
+	});
 
 	isInitialized = true;
 }
