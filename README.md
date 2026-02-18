@@ -421,6 +421,10 @@ TRACE_EXPORTER=otlp
    
    (Cloudflare Workers have unrestricted egress by default unless you've configured restrictions)
 
+**📋 Quick Setup Checklist:** See [docs/EXTERNAL_ACTIONS_REQUIRED.md](docs/EXTERNAL_ACTIONS_REQUIRED.md) for a complete step-by-step guide to external configuration.
+
+**📚 Detailed Setup Guide:** See [docs/TRACING_SETUP.md](docs/TRACING_SETUP.md) for comprehensive configuration instructions, troubleshooting, and PostHog setup.
+
 **Viewing Traces in PostHog:**
 
 1. Log in to your PostHog account at [app.posthog.com](https://app.posthog.com/) or your self-hosted instance
