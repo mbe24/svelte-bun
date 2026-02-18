@@ -297,6 +297,10 @@ export class PostHogFeatureFlagService implements FeatureFlagService {
 		}
 
 		try {
+			// Reload feature flags from PostHog to bypass PostHog's internal cache
+			// This ensures we get fresh values when our cache expires
+			await posthog.reloadFeatureFlags();
+			
 			const isEnabled = await posthog.isFeatureEnabled(flagKey, distinctId);
 			
 			// Use the value from PostHog, or default if undefined/null

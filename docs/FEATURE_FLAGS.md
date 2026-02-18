@@ -132,11 +132,13 @@ Feature flag values are cached to improve performance and reduce API calls to Po
 - **Configurable**: Set `FEATURE_FLAG_CACHE_TTL_MS` environment variable to customize
 - **Per-flag cache**: Each flag+user combination is cached separately
 - **Automatic expiration**: Cache entries expire after the TTL and are refreshed on next check
+- **PostHog cache invalidation**: When our cache expires, `reloadFeatureFlags()` is automatically called to bypass PostHog's internal cache and fetch fresh values
 
 **When changes take effect:**
 - If you change a flag in PostHog, the change will take effect after the cache expires (up to 10 minutes by default)
 - To see changes faster, reduce the cache TTL (e.g., set to 60000 for 1 minute)
 - No page reload or server restart required - cache expiration is automatic
+- PostHog's internal cache is automatically bypassed when our cache expires, ensuring fresh values are fetched
 
 ### Observability & Debugging
 
