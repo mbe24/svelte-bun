@@ -22,14 +22,14 @@ import {
 	propagation,
 	ROOT_CONTEXT
 } from '@opentelemetry/api';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { 
-	WebTracerProvider,
 	BatchSpanProcessor,
 	SimpleSpanProcessor,
 	ConsoleSpanExporter,
 	InMemorySpanExporter,
 	type ReadableSpan
-} from '@opentelemetry/sdk-trace-web';
+} from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes, defaultResource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
@@ -37,7 +37,7 @@ import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { getServiceName, getEnvironmentName } from './environment';
 
 // Global tracer instance
-let tracerProvider: WebTracerProvider | null = null;
+let tracerProvider: NodeTracerProvider | null = null;
 let memoryExporter: InMemorySpanExporter | null = null;
 let isInitialized = false;
 
@@ -197,19 +197,23 @@ export function initTracer(env?: {
 		}
 	}
 
-	// Create tracer provider with resource and span processor
-	tracerProvider = new WebTracerProvider({
+	// Create tracer provider with resource
+	tracerProvider = new NodeTracerProvider({
 		resource,
 	});
 
-	// Add the span processor using the public API
+	// Add the span processor - NodeTracerProvider has this method
 	if (spanProcessor) {
 		tracerProvider.addSpanProcessor(spanProcessor);
 	}
 
-	// Set the global tracer provider and propagator
+	// Register the tracer provider and set propagator
+	tracerProvider.register({
+		propagator: new W3CTraceContextPropagator(),
+	});
+
+	// Set the global tracer provider
 	trace.setGlobalTracerProvider(tracerProvider);
-	propagation.setGlobalPropagator(new W3CTraceContextPropagator());
 
 	isInitialized = true;
 }
