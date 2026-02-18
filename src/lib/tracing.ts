@@ -199,15 +199,13 @@ export function initTracer(env?: {
 		}
 	}
 
-	// Create tracer provider
+	// Create tracer provider with constructor-based span processor initialization
 	// WebTracerProvider is the correct choice for Cloudflare Workers/edge runtimes
 	// It uses fetch-based exports and works in web/edge environments
 	tracerProvider = new WebTracerProvider({
 		resource,
+		spanProcessors: spanProcessor ? [spanProcessor] : [],
 	});
-
-	// Register span processor using the public API
-	tracerProvider.addSpanProcessor(spanProcessor);
 
 	// Register the provider globally
 	tracerProvider.register({
