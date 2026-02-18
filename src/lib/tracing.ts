@@ -67,20 +67,30 @@ function shouldSample(isError: boolean, sampleRate: number): boolean {
 
 /**
  * Get OTLP endpoint for PostHog traces
+ * 
+ * This function:
+ * - Returns POSTHOG_OTLP_HOST if explicitly set (should be full URL with path)
+ * - Otherwise, automatically derives endpoint from POSTHOG_HOST and appends /v1/traces
+ * - Falls back to US ingestion endpoint if mapping fails
  */
 function getOTLPTraceEndpoint(posthogHost: string, posthogOtlpHost?: string): string {
+	// If OTLP host is explicitly set and not empty, use it as-is
+	// User should provide full URL including path (e.g., https://eu.i.posthog.com/v1/traces)
 	if (posthogOtlpHost && posthogOtlpHost.length > 0) {
-		return `${posthogOtlpHost}/v1/traces`;
+		return posthogOtlpHost;
 	}
 	
+	// Otherwise, derive from posthogHost and append /v1/traces
 	try {
 		const url = new URL(posthogHost);
 		const hostname = url.hostname.toLowerCase();
 		
+		// If already using ingestion endpoint, append /v1/traces
 		if (hostname.includes('.i.posthog.com')) {
 			return `${posthogHost}/v1/traces`;
 		}
 		
+		// Map dashboard URLs to OTLP trace endpoints
 		if (hostname === 'eu.posthog.com' || hostname === 'app.eu.posthog.com') {
 			return 'https://eu.i.posthog.com/v1/traces';
 		}
@@ -89,7 +99,7 @@ function getOTLPTraceEndpoint(posthogHost: string, posthogOtlpHost?: string): st
 			return 'https://us.i.posthog.com/v1/traces';
 		}
 		
-		// For self-hosted, assume OTLP is at same host
+		// For self-hosted, assume OTLP is at same host and append /v1/traces
 		return `${posthogHost}/v1/traces`;
 	} catch (e) {
 		console.warn('[Tracing] Failed to parse PostHog host URL:', posthogHost, e);

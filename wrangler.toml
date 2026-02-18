@@ -5,5 +5,7 @@ compatibility_date = "2024-01-01"
 
 [vars]
 POSTHOG_HOST = "https://eu.posthog.com"
-POSTHOG_OTLP_HOST = "https://eu.i.posthog.com"
+# Full OTLP endpoint URL including path (e.g., https://eu.i.posthog.com/v1/traces)
+# If not set, automatically derived from POSTHOG_HOST
+POSTHOG_OTLP_HOST = "https://eu.i.posthog.com/v1/traces"
 UPSTASH_REDIS_REST_URL = "https://deciding-bream-58216.upstash.io"
