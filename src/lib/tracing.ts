@@ -33,7 +33,7 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes, defaultResource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
-import { getServiceName } from './environment';
+import { getServiceName, getEnvironmentName } from './environment';
 
 // Global tracer instance
 let tracerProvider: BasicTracerProvider | null = null;
