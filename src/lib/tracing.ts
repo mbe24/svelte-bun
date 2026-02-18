@@ -25,6 +25,7 @@ import {
 import { 
 	BasicTracerProvider, 
 	BatchSpanProcessor,
+	SimpleSpanProcessor,
 	ConsoleSpanExporter,
 	InMemorySpanExporter,
 	type ReadableSpan
@@ -150,8 +151,9 @@ export function initTracer(env?: {
 	
 	if (exporterType === 'memory') {
 		// Memory exporter for testing
+		// Use SimpleSpanProcessor for immediate, synchronous export (no batching)
 		memoryExporter = new InMemorySpanExporter();
-		spanProcessors.push(new BatchSpanProcessor(memoryExporter));
+		spanProcessors.push(new SimpleSpanProcessor(memoryExporter));
 		console.log('[Tracing] Initialized with memory exporter for testing');
 	} else if (exporterType === 'console') {
 		// Console exporter for debugging
@@ -193,11 +195,15 @@ export function initTracer(env?: {
 		}
 	}
 
-	// Create tracer provider with resource and span processors
+	// Create tracer provider with resource
 	tracerProvider = new BasicTracerProvider({
 		resource,
-		spanProcessors,
 	});
+
+	// Add span processors
+	for (const processor of spanProcessors) {
+		tracerProvider.addSpanProcessor(processor);
+	}
 
 	// Set the global tracer provider and propagator
 	trace.setGlobalTracerProvider(tracerProvider);
