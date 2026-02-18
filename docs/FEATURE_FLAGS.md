@@ -193,13 +193,26 @@ This ensures the application is resilient and works even when PostHog is unavail
    - Enter the flag key (e.g., `rate-limit-counter`)
 
 2. **Configure Rollout**:
-   - Set to 100% for all users (enabled globally)
-   - Or target specific users/groups
-   - Add release conditions as needed
+   - **Important**: Keep the flag **enabled** in PostHog at all times
+   - To turn the flag "on": Set rollout to 100% of users
+   - To turn the flag "off": Set rollout to 0% of users
+   - **Do NOT disable the flag** - use rollout percentage instead
+   
+   **Why this matters:**
+   - Disabling a flag in PostHog causes it to return `undefined`
+   - Setting rollout to 0% causes it to return `false` (flag off)
+   - Setting rollout to 100% causes it to return `true` (flag on)
+   - The application expects boolean values (true/false), not undefined
 
-3. **Test the Flag**:
+3. **Target Specific Users/Groups** (optional):
+   - Add release conditions to target specific segments
+   - Use user properties or behavioral data for targeting
+   - Combine percentage rollouts with targeting rules
+
+4. **Test the Flag**:
    - Use PostHog's testing tools to verify behavior
    - Check different user segments
+   - Verify logs in PostHog show expected flag values
 
 ## Best Practices
 
@@ -350,8 +363,18 @@ export function getFeatureFlagService(env?: any): FeatureFlagService {
 
 - Check that `POSTHOG_API_KEY` is set correctly
 - Verify the flag exists in PostHog with the correct key
-- Check PostHog logs for any errors
+- **Ensure the flag is enabled in PostHog** (not disabled)
+- Check that rollout percentage is set correctly (0% for off, 100% for on)
+- Check PostHog logs to see what value is being returned
 - Ensure the distinctId matches what you expect
+- Check feature flag logs in PostHog (filter by `span.kind: feature_flag`)
+
+### Flag value is inverted (on when it should be off)
+
+- **Common issue**: The flag is disabled in PostHog instead of enabled with 0% rollout
+- **Solution**: Enable the flag and set rollout to 0% for "off" or 100% for "on"
+- Disabled flags return `undefined`, which may cause unexpected default behavior
+- Check logs to verify what PostHog is returning
 
 ### PostHog errors in console
 
@@ -360,11 +383,20 @@ export function getFeatureFlagService(env?: any): FeatureFlagService {
 - Review PostHog status page for outages
 - The application will continue working with default values
 
+### Flag changes not taking effect after cache TTL
+
+- Check that the flag is **enabled** in PostHog (not disabled)
+- Verify cache TTL by checking logs (look for "Initialized with cache TTL" message)
+- Wait for at least the cache TTL duration after changing the flag
+- Check PostHog logs to confirm new API calls are being made after cache expires
+- The system automatically calls `reloadFeatureFlags()` to bypass PostHog's cache
+
 ### Flag not updating in real-time
 
-- PostHog evaluates flags server-side
-- Changes may take a few seconds to propagate
-- Consider implementing client-side refresh if needed
+- Feature flag values are cached for performance (default: 10 minutes)
+- Changes in PostHog take effect after the cache TTL expires
+- To see changes faster, reduce `FEATURE_FLAG_CACHE_TTL_MS` (e.g., 60000 for 1 minute)
+- No page reload or server restart required - cache expiration is automatic
 
 ## Related Documentation
 
