@@ -2,6 +2,52 @@ import { Redis } from '@upstash/redis/cloudflare';
 import { Ratelimit } from '@upstash/ratelimit';
 import { getEnvironmentName } from './environment';
 import { getFeatureFlagService, FeatureFlags } from './feature-flags';
+import { createChildSpan, injectTraceContext } from './tracing';
+import { context, trace, SpanStatusCode } from '@opentelemetry/api';
+
+/**
+ * Traced wrapper for Upstash rate limiter
+ */
+class TracedRatelimit {
+	private ratelimit: Ratelimit;
+
+	constructor(ratelimit: Ratelimit) {
+		this.ratelimit = ratelimit;
+	}
+
+	async limit(identifier: string) {
+		const span = createChildSpan('ratelimit.check', {
+			attributes: {
+				'db.system': 'redis',
+				'db.operation': 'EVAL', // Upstash rate limit uses Lua scripts (EVAL)
+				'ratelimit.identifier': identifier,
+			},
+		});
+
+		try {
+			const startTime = Date.now();
+			const result = await this.ratelimit.limit(identifier);
+			const duration = Date.now() - startTime;
+
+			span.setAttribute('ratelimit.success', result.success);
+			span.setAttribute('ratelimit.remaining', result.remaining);
+			span.setAttribute('duration_ms', duration);
+			span.setAttribute('http.status_code', 200); // Upstash HTTP call succeeded
+
+			span.setStatus({ code: SpanStatusCode.OK });
+			return result;
+		} catch (error) {
+			span.recordException(error as Error);
+			span.setStatus({
+				code: SpanStatusCode.ERROR,
+				message: (error as Error).message,
+			});
+			throw error;
+		} finally {
+			span.end();
+		}
+	}
+}
 
 /**
  * Creates a rate limiter instance for counter actions
@@ -41,7 +87,8 @@ export function createRateLimiter(env?: {
 		prefix
 	});
 
-	return ratelimit;
+	// Return traced wrapper
+	return new TracedRatelimit(ratelimit);
 }
 
 /**
