@@ -64,7 +64,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	let response: Response;
+	let response: Response | undefined;
 	let error: Error | null = null;
 
 	try {
@@ -123,7 +123,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Log HTTP request to PostHog if configured
 	try {
 		const posthog = getPostHog(event.platform?.env);
-		if (posthog) {
+		if (posthog && response) {
 			const duration = Date.now() - startTime;
 			const userId = event.locals.userId;
 			
@@ -158,6 +158,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		console.error('PostHog logging error:', error);
 	}
 
-	return response;
+	return response!;
 };
 

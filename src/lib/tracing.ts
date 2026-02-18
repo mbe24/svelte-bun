@@ -30,7 +30,7 @@ import {
 	type ReadableSpan
 } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes, defaultResource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 
@@ -121,25 +121,22 @@ export function initTracer(env?: {
 	const serviceName = env?.SERVICE_NAME || 'svelte-bun';
 	const serviceVersion = env?.APP_RELEASE || 'unknown';
 	
-	const resource = new Resource({
+	const resource = defaultResource().merge(resourceFromAttributes({
 		[ATTR_SERVICE_NAME]: serviceName,
 		[ATTR_SERVICE_VERSION]: serviceVersion,
-	});
+	}));
 
-	// Create tracer provider
-	tracerProvider = new BasicTracerProvider({
-		resource,
-	});
-
-	// Setup exporter based on type
+	// Setup span processors based on exporter type
+	const spanProcessors = [];
+	
 	if (exporterType === 'memory') {
 		// Memory exporter for testing
 		memoryExporter = new InMemorySpanExporter();
-		tracerProvider.addSpanProcessor(new BatchSpanProcessor(memoryExporter));
+		spanProcessors.push(new BatchSpanProcessor(memoryExporter));
 		console.log('[Tracing] Initialized with memory exporter for testing');
 	} else if (exporterType === 'console') {
 		// Console exporter for debugging
-		tracerProvider.addSpanProcessor(new BatchSpanProcessor(new ConsoleSpanExporter()));
+		spanProcessors.push(new BatchSpanProcessor(new ConsoleSpanExporter()));
 		console.log('[Tracing] Initialized with console exporter for debugging');
 	} else {
 		// OTLP exporter for PostHog
@@ -168,17 +165,22 @@ export function initTracer(env?: {
 				headers,
 			});
 			
-			tracerProvider.addSpanProcessor(new BatchSpanProcessor(otlpExporter));
+			spanProcessors.push(new BatchSpanProcessor(otlpExporter));
 			console.log('[Tracing] Initialized with OTLP exporter to', endpoint);
 		} else {
 			console.warn('[Tracing] No POSTHOG_API_KEY provided, tracing disabled');
 		}
 	}
 
-	// Register the tracer provider
-	tracerProvider.register({
-		propagator: new W3CTraceContextPropagator(),
+	// Create tracer provider with resource and span processors
+	tracerProvider = new BasicTracerProvider({
+		resource,
+		spanProcessors,
 	});
+
+	// Set the global tracer provider and propagator
+	trace.setGlobalTracerProvider(tracerProvider);
+	propagation.setGlobalPropagator(new W3CTraceContextPropagator());
 
 	isInitialized = true;
 }
