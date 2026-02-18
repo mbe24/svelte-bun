@@ -64,7 +64,7 @@ Configure these in Cloudflare Pages/Workers settings:
 | `POSTHOG_HOST` | `https://app.posthog.com` | ✅ Yes | PostHog host (US: app.posthog.com, EU: eu.posthog.com) |
 | `TRACE_SUCCESS_SAMPLE_RATE` | `0.1` | ⚠️ Recommended | Sample rate for successful requests (0.0-1.0, default 0.1 = 10%) |
 | `SERVICE_NAME` | `svelte-bun-production` | ⚠️ Recommended | Service name for identification |
-| `APP_RELEASE` | `v1.0.0` | Optional | Release version for deployment correlation |
+| `APP_RELEASE` | `v1.0.0` | Optional | Release version (defaults to ENVIRONMENT if not set) |
 
 #### For Preview Environment:
 

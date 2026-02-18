@@ -392,7 +392,7 @@ TRACE_SUCCESS_SAMPLE_RATE=0.1
 SERVICE_NAME=svelte-bun
 
 # Application Release Version (useful for deployment correlation)
-# Default: unknown
+# Default: Uses ENVIRONMENT value (e.g., production, preview, development)
 APP_RELEASE=v1.0.0
 
 # Trace Exporter Type

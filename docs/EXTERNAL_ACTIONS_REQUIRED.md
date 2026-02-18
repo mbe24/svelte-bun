@@ -48,7 +48,7 @@ Add these environment variables:
 | `POSTHOG_HOST` | `https://app.posthog.com` | ✅ **YES** | US: app.posthog.com, EU: eu.posthog.com |
 | `TRACE_SUCCESS_SAMPLE_RATE` | `0.1` | ⚠️ Recommended | 10% of successful requests traced (errors always traced) |
 | `SERVICE_NAME` | `svelte-bun-production` | ⚠️ Recommended | Identifies your service in PostHog |
-| `APP_RELEASE` | `v1.0.0` | Optional | Release version for correlation |
+| `APP_RELEASE` | `v1.0.0` | Optional | Release version (defaults to ENVIRONMENT if not set) |
 
 #### Preview Environment:
 

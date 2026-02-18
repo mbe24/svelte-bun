@@ -137,7 +137,8 @@ export function initTracer(env?: {
 	// Use getServiceName to derive from ENVIRONMENT/CF_PAGES_BRANCH, 
 	// or fall back to SERVICE_NAME if explicitly set
 	const serviceName = env?.SERVICE_NAME || getServiceName(env);
-	const serviceVersion = env?.APP_RELEASE || 'unknown';
+	// Use APP_RELEASE if set, otherwise default to ENVIRONMENT name
+	const serviceVersion = env?.APP_RELEASE || getEnvironmentName(env);
 	
 	const resource = defaultResource().merge(resourceFromAttributes({
 		[ATTR_SERVICE_NAME]: serviceName,
