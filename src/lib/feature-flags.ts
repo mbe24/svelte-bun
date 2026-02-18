@@ -167,6 +167,74 @@ export class PostHogFeatureFlagService implements FeatureFlagService {
 			? parseInt(env.FEATURE_FLAG_CACHE_TTL_MS, 10)
 			: 600000;
 		this.cacheTTL = isNaN(ttlFromEnv) ? 600000 : ttlFromEnv;
+		
+		// Log cache TTL configuration
+		console.log(`[Feature Flag Service] Initialized with cache TTL: ${this.cacheTTL}ms (${this.cacheTTL / 1000}s)`);
+		
+		// Log initial cache TTL to PostHog OTLP
+		this.logCacheTTLInitialization().catch(err => 
+			console.error('[Feature Flag] Failed to log cache TTL initialization:', err)
+		);
+	}
+
+	/**
+	 * Log cache TTL initialization to PostHog OTLP
+	 */
+	private async logCacheTTLInitialization(): Promise<void> {
+		const apiKey = this.env?.POSTHOG_API_KEY || (typeof process !== 'undefined' ? process.env.POSTHOG_API_KEY : undefined);
+		if (!apiKey) return;
+
+		const host = this.env?.POSTHOG_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_HOST : undefined) || 'https://app.posthog.com';
+		const otlpHost = this.env?.POSTHOG_OTLP_HOST || (typeof process !== 'undefined' ? process.env.POSTHOG_OTLP_HOST : undefined);
+
+		try {
+			const otlpEndpoint = getOTLPEndpoint(host, otlpHost);
+
+			const logRecord = {
+				timeUnixNano: String(Date.now() * 1000000),
+				severityNumber: 9, // INFO
+				severityText: 'INFO',
+				body: {
+					stringValue: `Feature flag service initialized with cache TTL: ${this.cacheTTL}ms`
+				},
+				attributes: [
+					{ key: 'feature_flag.cache_ttl_ms', value: { stringValue: String(this.cacheTTL) } },
+					{ key: 'feature_flag.cache_ttl_seconds', value: { stringValue: String(this.cacheTTL / 1000) } },
+					{ key: 'span.kind', value: { stringValue: 'feature_flag_init' } }
+				]
+			};
+
+			const otlpPayload = {
+				resourceLogs: [
+					{
+						resource: {
+							attributes: [
+								{ key: 'service.name', value: { stringValue: getServiceName(this.env) } }
+							]
+						},
+						scopeLogs: [
+							{
+								scope: {
+									name: 'svelte-feature-flags'
+								},
+								logRecords: [logRecord]
+							}
+						]
+					}
+				]
+			};
+
+			await fetch(`${otlpEndpoint}/i/v1/logs`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${apiKey}`
+				},
+				body: JSON.stringify(otlpPayload)
+			});
+		} catch (error) {
+			// Silently fail
+		}
 	}
 
 	/**
@@ -230,7 +298,13 @@ export class PostHogFeatureFlagService implements FeatureFlagService {
 
 		try {
 			const isEnabled = await posthog.isFeatureEnabled(flagKey, distinctId);
-			const result = isEnabled ?? defaultValue;
+			
+			// Debug log to understand what PostHog returns
+			console.log(`[Feature Flag Debug] PostHog returned for "${flagKey}": ${JSON.stringify(isEnabled)} (type: ${typeof isEnabled})`);
+			
+			// PostHog's isFeatureEnabled returns true when enabled, false when disabled
+			// Use the value directly, defaulting to defaultValue if undefined/null
+			const result = isEnabled !== undefined && isEnabled !== null ? isEnabled : defaultValue;
 
 			// Cache the result
 			this.setCachedValue(cacheKey, result);
