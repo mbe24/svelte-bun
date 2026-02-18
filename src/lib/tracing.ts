@@ -32,7 +32,7 @@ import {
 	type SpanProcessor
 } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources/build/src/Resource';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { getServiceName, getEnvironmentName } from './environment';
@@ -142,8 +142,8 @@ export function initTracer(env?: {
 	// Use APP_RELEASE if set, otherwise default to ENVIRONMENT name
 	const serviceVersion = env?.APP_RELEASE || getEnvironmentName(env);
 	
-	// Create resource with service info
-	const resource = new Resource({
+	// Create resource with service info using the official OpenTelemetry factory function
+	const resource = resourceFromAttributes({
 		[ATTR_SERVICE_NAME]: serviceName,
 		[ATTR_SERVICE_VERSION]: serviceVersion,
 	});
