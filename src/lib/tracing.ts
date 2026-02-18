@@ -32,7 +32,7 @@ import {
 	type SpanProcessor
 } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources';
+import { Resource } from '@opentelemetry/resources/build/src/Resource';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { getServiceName, getEnvironmentName } from './environment';
