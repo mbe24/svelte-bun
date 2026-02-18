@@ -23,7 +23,6 @@ import {
 	ROOT_CONTEXT
 } from '@opentelemetry/api';
 import { 
-	BasicTracerProvider,
 	BatchSpanProcessor,
 	SimpleSpanProcessor,
 	ConsoleSpanExporter,
@@ -31,6 +30,7 @@ import {
 	type ReadableSpan,
 	type SpanProcessor
 } from '@opentelemetry/sdk-trace-base';
+import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
@@ -38,7 +38,7 @@ import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { getServiceName, getEnvironmentName } from './environment';
 
 // Global tracer instance
-let tracerProvider: BasicTracerProvider | null = null;
+let tracerProvider: WebTracerProvider | null = null;
 let memoryExporter: InMemorySpanExporter | null = null;
 let isInitialized = false;
 
@@ -200,8 +200,9 @@ export function initTracer(env?: {
 	}
 
 	// Create tracer provider
-	// BasicTracerProvider is the correct choice for Cloudflare Workers (not Node or Web specific)
-	tracerProvider = new BasicTracerProvider({
+	// WebTracerProvider is the correct choice for Cloudflare Workers/edge runtimes
+	// It uses fetch-based exports and works in web/edge environments
+	tracerProvider = new WebTracerProvider({
 		resource,
 	});
 
