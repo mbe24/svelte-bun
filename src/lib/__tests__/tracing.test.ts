@@ -17,8 +17,9 @@ import {
 import { SpanStatusCode, trace, context } from '@opentelemetry/api';
 
 describe('Tracing', () => {
-	beforeEach(() => {
-		// Clear any previous state
+	beforeEach(async () => {
+		// Ensure clean tracer state for each test
+		await shutdownTracer();
 		clearFinishedSpans();
 	});
 
@@ -63,8 +64,12 @@ describe('Tracing', () => {
 		initTracer({ TRACE_EXPORTER: 'memory' });
 		
 		const rootSpan = startRootSpan('test.root');
-		const childSpan = createChildSpan('test.child', {
-			attributes: { 'child.attribute': 'value' },
+		
+		// Create child span within parent's context
+		const childSpan = await context.with(trace.setSpan(context.active(), rootSpan), () => {
+			return createChildSpan('test.child', {
+				attributes: { 'child.attribute': 'value' },
+			});
 		});
 		
 		expect(childSpan).toBeDefined();
@@ -72,6 +77,13 @@ describe('Tracing', () => {
 		childSpan.end();
 		rootSpan.end();
 		await forceFlush();
+		
+		const spans = getFinishedSpans();
+		expect(spans.length).toBe(2);
+		// Verify parent-child relationship
+		const child = spans.find((s) => s.name === 'test.child');
+		const root = spans.find((s) => s.name === 'test.root');
+		expect(child?.parentSpanId).toBe(root?.spanContext().spanId);
 	});
 
 	test('should hash user ID for PII protection', async () => {
@@ -115,8 +127,11 @@ describe('Tracing', () => {
 			injectTraceContext(headers);
 		});
 		
+		// Validate traceparent format: version-traceId-spanId-flags
 		expect(headers['traceparent']).toBeDefined();
-		expect(headers['traceparent']).toContain(traceId);
+		const traceparent = headers['traceparent'];
+		expect(traceparent).toMatch(/^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$/);
+		expect(traceparent).toContain(traceId);
 		
 		span.end();
 		await forceFlush();
@@ -139,6 +154,9 @@ describe('Tracing', () => {
 		
 		await forceFlush();
 		
+		// Add a small delay to ensure spans are fully exported in Bun/CI
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		
 		const spans = getFinishedSpans();
 		expect(spans.length).toBe(2);
 		expect(spans[0].name).toBe('test.span1');
@@ -151,6 +169,9 @@ describe('Tracing', () => {
 		const span = startRootSpan('test.clear');
 		span.end();
 		await forceFlush();
+		
+		// Add a small delay to ensure spans are exported
+		await new Promise((resolve) => setTimeout(resolve, 10));
 		
 		let spans = getFinishedSpans();
 		expect(spans.length).toBe(1);
@@ -171,6 +192,9 @@ describe('Tracing', () => {
 		const span = startRootSpan('test.service');
 		span.end();
 		await forceFlush();
+		
+		// Add a small delay to ensure spans are exported
+		await new Promise((resolve) => setTimeout(resolve, 10));
 		
 		const spans = getFinishedSpans();
 		expect(spans.length).toBe(1);
