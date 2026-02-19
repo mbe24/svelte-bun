@@ -78,12 +78,21 @@ describe('Tracing', () => {
 		rootSpan.end();
 		await forceFlush();
 		
+		// Allow time for spans to be fully exported
+		await new Promise(resolve => setTimeout(resolve, 10));
+		
 		const spans = getFinishedSpans();
 		expect(spans.length).toBe(2);
+		
 		// Verify parent-child relationship
 		const child = spans.find((s) => s.name === 'test.child');
 		const root = spans.find((s) => s.name === 'test.root');
-		expect(child?.parentSpanId).toBe(root?.spanContext().spanId);
+		
+		// Both spans should share the same traceId
+		expect(child?.spanContext().traceId).toBe(root?.spanContext().traceId);
+		
+		// Child's parentSpanContext should point to the root span
+		expect(child?.parentSpanContext?.spanId).toBe(root?.spanContext().spanId);
 	});
 
 	test('should hash user ID for PII protection', async () => {
