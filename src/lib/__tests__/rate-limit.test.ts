@@ -1,101 +1,116 @@
 import { describe, test, expect } from 'bun:test';
-import { createRateLimiter, checkRateLimit } from '../rate-limit';
+import { getRateLimitService, checkRateLimit, resetRateLimitService } from '../rate-limit';
 
 describe('Rate limiting utilities', () => {
-	describe('createRateLimiter', () => {
+	describe('getRateLimitService', () => {
 		test('should return null when environment variables are not set', () => {
-			const ratelimit = createRateLimiter(undefined);
-			expect(ratelimit).toBeNull();
+			resetRateLimitService();
+			const service = getRateLimitService(undefined);
+			expect(service).toBeNull();
 		});
 
 		test('should return null when UPSTASH_REDIS_REST_URL is missing', () => {
-			const ratelimit = createRateLimiter({
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_TOKEN: 'test_token'
 			});
-			expect(ratelimit).toBeNull();
+			expect(service).toBeNull();
 		});
 
 		test('should return null when UPSTASH_REDIS_REST_TOKEN is missing', () => {
-			const ratelimit = createRateLimiter({
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: 'https://test.upstash.io'
 			});
-			expect(ratelimit).toBeNull();
+			expect(service).toBeNull();
 		});
 
 		test('should return null when URL is set but token is undefined (CI scenario)', () => {
+			resetRateLimitService();
 			// This simulates the CI environment where URL is in wrangler.toml
 			// but token is not set in environment variables
-			const ratelimit = createRateLimiter({
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: 'https://deciding-bream-58216.upstash.io',
 				UPSTASH_REDIS_REST_TOKEN: undefined
 			});
-			expect(ratelimit).toBeNull();
+			expect(service).toBeNull();
 		});
 
 		test('should return null when UPSTASH_REDIS_REST_URL is empty string', () => {
-			const ratelimit = createRateLimiter({
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: '',
 				UPSTASH_REDIS_REST_TOKEN: 'test_token'
 			});
-			expect(ratelimit).toBeNull();
+			expect(service).toBeNull();
 		});
 
 		test('should return null when UPSTASH_REDIS_REST_URL is whitespace only', () => {
-			const ratelimit = createRateLimiter({
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: '   ',
 				UPSTASH_REDIS_REST_TOKEN: 'test_token'
 			});
-			expect(ratelimit).toBeNull();
+			expect(service).toBeNull();
 		});
 
 		test('should return null when UPSTASH_REDIS_REST_TOKEN is empty string', () => {
-			const ratelimit = createRateLimiter({
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
 				UPSTASH_REDIS_REST_TOKEN: ''
 			});
-			expect(ratelimit).toBeNull();
+			expect(service).toBeNull();
 		});
 
 		test('should return null when UPSTASH_REDIS_REST_TOKEN is whitespace only', () => {
-			const ratelimit = createRateLimiter({
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
 				UPSTASH_REDIS_REST_TOKEN: '   '
 			});
-			expect(ratelimit).toBeNull();
+			expect(service).toBeNull();
 		});
 
 		test('should return null when both are empty strings', () => {
-			const ratelimit = createRateLimiter({
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: '',
 				UPSTASH_REDIS_REST_TOKEN: ''
 			});
-			expect(ratelimit).toBeNull();
+			expect(service).toBeNull();
 		});
 
-		test('should return rate limiter when both environment variables are set', () => {
-			const ratelimit = createRateLimiter({
+		test('should return rate limiter service when both environment variables are set', () => {
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
 				UPSTASH_REDIS_REST_TOKEN: 'test_token'
 			});
-			expect(ratelimit).not.toBeNull();
+			expect(service).not.toBeNull();
+			expect(service).toHaveProperty('check');
 		});
 
-		test('should return rate limiter when values have leading/trailing whitespace', () => {
-			const ratelimit = createRateLimiter({
+		test('should return rate limiter service when values have leading/trailing whitespace', () => {
+			resetRateLimitService();
+			const service = getRateLimitService({
 				UPSTASH_REDIS_REST_URL: '  https://test.upstash.io  ',
 				UPSTASH_REDIS_REST_TOKEN: '  test_token  '
 			});
-			expect(ratelimit).not.toBeNull();
+			expect(service).not.toBeNull();
+			expect(service).toHaveProperty('check');
 		});
 	});
 
 	describe('checkRateLimit', () => {
 		test('should allow requests when rate limiting is not configured', async () => {
+			resetRateLimitService();
 			const result = await checkRateLimit(1, undefined);
 			expect(result.success).toBe(true);
 		});
 
 		test('should allow requests when environment variables are missing', async () => {
+			resetRateLimitService();
 			const result = await checkRateLimit(1, {
 				UPSTASH_REDIS_REST_URL: undefined,
 				UPSTASH_REDIS_REST_TOKEN: undefined
@@ -104,6 +119,7 @@ describe('Rate limiting utilities', () => {
 		});
 
 		test('should allow requests when environment variables are empty strings', async () => {
+			resetRateLimitService();
 			const result = await checkRateLimit(1, {
 				UPSTASH_REDIS_REST_URL: '',
 				UPSTASH_REDIS_REST_TOKEN: ''
@@ -112,6 +128,7 @@ describe('Rate limiting utilities', () => {
 		});
 
 		test('should allow requests when environment variables are whitespace only', async () => {
+			resetRateLimitService();
 			const result = await checkRateLimit(1, {
 				UPSTASH_REDIS_REST_URL: '   ',
 				UPSTASH_REDIS_REST_TOKEN: '   '
@@ -120,6 +137,7 @@ describe('Rate limiting utilities', () => {
 		});
 
 		test('should not return retryAfter when request succeeds', async () => {
+			resetRateLimitService();
 			const result = await checkRateLimit(1, undefined);
 			expect(result.success).toBe(true);
 			expect(result.retryAfter).toBeUndefined();
@@ -144,6 +162,7 @@ describe('Rate limiting utilities', () => {
 		});
 
 		test('should not return reset field', async () => {
+			resetRateLimitService();
 			const result = await checkRateLimit(1, undefined);
 			expect(result.success).toBe(true);
 			expect(result).not.toHaveProperty('reset');
@@ -152,6 +171,7 @@ describe('Rate limiting utilities', () => {
 
 	describe('checkRateLimit with feature flags', () => {
 		test('should allow requests when PostHog is not configured and Redis is unavailable', async () => {
+			resetRateLimitService();
 			// When PostHog is not configured, the feature flag defaults to true (enabled)
 			// But Redis is also not configured, so rate limiting is skipped anyway
 			const result = await checkRateLimit(1, {
@@ -162,6 +182,7 @@ describe('Rate limiting utilities', () => {
 		});
 
 		test('should check feature flag even when Redis is not configured', async () => {
+			resetRateLimitService();
 			// This test documents that feature flag is checked first
 			// Even if Redis is not configured, the feature flag logic runs
 			// In this case, PostHog is not configured so default (true) is returned
@@ -174,6 +195,7 @@ describe('Rate limiting utilities', () => {
 		});
 
 		test('should allow requests when neither PostHog nor Redis is configured', async () => {
+			resetRateLimitService();
 			// When both PostHog and Redis are not configured:
 			// 1. Feature flag check returns default value (true - enabled)
 			// 2. But Redis is not configured, so rate limiting is skipped anyway

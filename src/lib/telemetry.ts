@@ -404,7 +404,7 @@ export async function logAuthEvent(
 }
 
 /**
- * Utility: Create a database query wrapper that automatically logs performance
+ * Utility: Create a database query wrapper that automatically logs performance and traces
  */
 export function wrapDatabaseQuery<T>(
 	queryFn: () => Promise<T>,
@@ -419,9 +419,39 @@ export function wrapDatabaseQuery<T>(
 ): Promise<T> {
 	const startTime = Date.now();
 	
+	// Import tracing dynamically to avoid circular dependencies
+	let span: any = null;
+	try {
+		const { createChildSpan, setUserId } = require('./tracing');
+		span = createChildSpan(`db.query.${table}`, {
+			attributes: {
+				'db.system': 'postgresql',
+				'db.operation': queryType,
+				'db.table': table,
+			},
+		});
+		
+		if (context.userId) {
+			setUserId(span, context.userId);
+		}
+	} catch (e) {
+		// Tracing not available, continue without it
+	}
+	
 	return queryFn()
 		.then(result => {
 			const duration = Date.now() - startTime;
+			
+			// Set span attributes
+			if (span) {
+				span.setAttribute('duration_ms', duration);
+				if (Array.isArray(result)) {
+					span.setAttribute('db.row_count', result.length);
+				}
+				span.setStatus({ code: 0 }); // SpanStatusCode.OK
+				span.end();
+			}
+			
 			logDatabaseQuery(queryType, table, duration, {
 				...context,
 				success: true,
@@ -431,6 +461,14 @@ export function wrapDatabaseQuery<T>(
 		})
 		.catch(error => {
 			const duration = Date.now() - startTime;
+			
+			// Record error on span
+			if (span) {
+				span.recordException(error);
+				span.setStatus({ code: 2, message: error.message }); // SpanStatusCode.ERROR
+				span.end();
+			}
+			
 			logDatabaseQuery(queryType, table, duration, {
 				...context,
 				success: false,

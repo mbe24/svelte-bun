@@ -25,6 +25,12 @@ declare global {
 				CF_PAGES_BRANCH?: string; // Cloudflare Pages automatically sets this
 				UPSTASH_REDIS_REST_URL?: string;
 				UPSTASH_REDIS_REST_TOKEN?: string;
+				// Tracing environment variables
+				TRACE_SUCCESS_SAMPLE_RATE?: string;
+				SERVICE_NAME?: string;
+				APP_RELEASE?: string;
+				TRACE_EXPORTER?: string;
+				OTLP_HEADERS?: string;
 				// Add other environment variables as needed
 			};
 			context?: {

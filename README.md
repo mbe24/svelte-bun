@@ -364,6 +364,103 @@ svelte-bun/
 
 ## Analytics and Monitoring
 
+### OpenTelemetry Distributed Tracing
+
+This application implements comprehensive distributed tracing using OpenTelemetry, exporting traces to PostHog via OTLP (OpenTelemetry Protocol). Every incoming request produces a root span with child spans for database operations, external API calls, and rate limiting checks.
+
+**Features:**
+- **Full Request Tracing**: Every HTTP request creates a root span with method and route information
+- **Database Tracing**: All database queries are automatically traced with operation type and table info
+- **Upstash Redis Tracing**: Rate limiting calls to Upstash are traced as child spans
+- **Trace Context Propagation**: W3C traceparent headers are extracted from incoming requests and injected into outgoing calls
+- **X-Trace-Id Header**: Every response includes an `X-Trace-Id` header for log correlation
+- **Sampling**: Error requests are always traced; successful requests use configurable sampling (default 10%)
+- **PII Protection**: User IDs are hashed before being stored in spans
+
+**Configuration:**
+
+Add these variables to your `.env` file (all optional):
+
+```bash
+# Tracing Sample Rate for Successful Requests (0.0 to 1.0)
+# Error requests are ALWAYS traced regardless of this setting
+# Default: 0.1 (10% of successful requests)
+TRACE_SUCCESS_SAMPLE_RATE=0.1
+
+# Service Name (for identifying your service in traces)
+# Default: svelte-bun
+SERVICE_NAME=svelte-bun
+
+# Application Release Version (useful for deployment correlation)
+# Default: Uses ENVIRONMENT value (e.g., production, preview, development)
+APP_RELEASE=v1.0.0
+
+# Trace Exporter Type
+# Options: otlp (default, exports to PostHog), memory (for tests), console (for debugging)
+# Default: otlp
+TRACE_EXPORTER=otlp
+
+# Additional OTLP Headers (JSON format) - rarely needed
+# The POSTHOG_API_KEY is automatically used as Authorization Bearer token
+# OTLP_HEADERS={"X-Custom-Header":"value"}
+```
+
+**For Cloudflare Pages Deployment:**
+
+1. Go to your Cloudflare Pages project → Settings → Environment variables
+2. Add the following variables (for both Production and Preview):
+   - `POSTHOG_API_KEY`: Your PostHog API key (required for tracing)
+   - `POSTHOG_HOST`: Your PostHog host (e.g., `https://app.posthog.com` or `https://eu.posthog.com`)
+   - `TRACE_SUCCESS_SAMPLE_RATE`: Sample rate for successful requests (e.g., `0.1` for 10%)
+   - `SERVICE_NAME`: Your service name (e.g., `svelte-bun-production`)
+   - `APP_RELEASE`: Your release version (e.g., `v1.0.0`)
+
+3. Ensure your Cloudflare Worker has egress access to PostHog OTLP endpoint:
+   - US: `https://us.i.posthog.com`
+   - EU: `https://eu.i.posthog.com`
+   
+   (Cloudflare Workers have unrestricted egress by default unless you've configured restrictions)
+
+**📋 Quick Setup Checklist:** See [docs/EXTERNAL_ACTIONS_REQUIRED.md](docs/EXTERNAL_ACTIONS_REQUIRED.md) for a complete step-by-step guide to external configuration.
+
+**📚 Detailed Setup Guide:** See [docs/TRACING_SETUP.md](docs/TRACING_SETUP.md) for comprehensive configuration instructions, troubleshooting, and PostHog setup.
+
+**Viewing Traces in PostHog:**
+
+1. Log in to your PostHog account at [app.posthog.com](https://app.posthog.com/) or your self-hosted instance
+2. Navigate to **Activity → Traces** (or **Data Management → Traces** depending on your PostHog version)
+3. You'll see all incoming HTTP requests as root spans
+4. Click on any trace to see the full span hierarchy:
+   - Root span: `HTTP POST /api/auth/login`
+   - Child spans: `db.query.users` (database operations)
+   - Child spans: `ratelimit.check` (rate limiting)
+   - Duration, status codes, and error information
+
+**Using X-Trace-Id for Log Correlation:**
+
+Every API response includes an `X-Trace-Id` header containing the OpenTelemetry trace ID:
+
+```bash
+curl -i https://your-app.pages.dev/api/auth/login
+# Response headers include:
+# X-Trace-Id: 4bf92f3577b34da6a3ce929d0e0e4736
+```
+
+Use this trace ID to:
+- Search for related logs in PostHog
+- Correlate frontend errors with backend traces
+- Debug production issues by finding the exact request trace
+
+**For Testing and Development:**
+
+When running tests, use the memory exporter to collect spans in-memory:
+
+```bash
+TRACE_EXPORTER=memory npm test
+```
+
+This is automatically configured in CI environments to avoid external dependencies during testing.
+
 ### PostHog HTTP Request Logging
 
 When configured, the application automatically logs all HTTP requests to PostHog with the following information:
