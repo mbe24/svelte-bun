@@ -216,11 +216,12 @@ export function initTracer(env?: {
 		spanProcessors: spanProcessor ? [spanProcessor] : [],
 	});
 
-	// Set the global tracer provider
-	trace.setGlobalTracerProvider(tracerProvider);
-	
-	// Set the global propagator for W3C trace context propagation
-	propagation.setGlobalPropagator(new W3CTraceContextPropagator());
+	// Register the provider with propagator using WebTracerProvider.register()
+	// This properly sets up both the global provider and the propagator
+	// Following the official OpenTelemetry WebTracerProvider example pattern
+	tracerProvider.register({
+		propagator: new W3CTraceContextPropagator(),
+	});
 
 	isInitialized = true;
 }
