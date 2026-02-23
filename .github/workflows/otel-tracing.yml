@@ -6,6 +6,12 @@ on:
       - CI
       - CD
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      runId:
+        description: Workflow Run ID to export
+        required: true
+        type: string
 
 jobs:
   otel-export-trace:
@@ -15,9 +21,10 @@ jobs:
       actions: read
     steps:
       - name: Export Workflow Trace
-        uses: corentinmusard/otel-cicd-action@e9b4a58325d7426a18fa57dd7526dee170a016af # v1.13.2
+        uses: corentinmusard/otel-cicd-action@0f9f16fceb53fd8c996042e28c642ec61f844876 # v4.0.0
         with:
           otlpEndpoint: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
           otlpHeaders: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
+          otelServiceName: svelte-bun
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          runId: ${{ github.event.workflow_run.id }}
+          runId: ${{ github.event.workflow_run.id || inputs.runId }}
