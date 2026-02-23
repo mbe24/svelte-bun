@@ -1,5 +1,6 @@
 import { getPostHog } from './posthog';
 import { getEnvironmentName, getServiceName } from './environment';
+import { getOTLPEndpoint } from './otlp-utils';
 
 /**
  * Log feature flag evaluation to PostHog OTLP
@@ -77,36 +78,6 @@ async function logFeatureFlagEvaluation(
 	} catch (error) {
 		// Silently fail to not disrupt feature flag functionality
 		console.error('[Feature Flag Telemetry] Error logging feature flag evaluation:', error);
-	}
-}
-
-/**
- * Get OTLP ingestion endpoint from PostHog host
- */
-function getOTLPEndpoint(posthogHost: string, posthogOtlpHost?: string): string {
-	if (posthogOtlpHost && posthogOtlpHost.length > 0) {
-		return posthogOtlpHost;
-	}
-	
-	try {
-		const url = new URL(posthogHost);
-		const hostname = url.hostname.toLowerCase();
-		
-		if (hostname.includes('.i.posthog.com')) {
-			return posthogHost;
-		}
-		
-		if (hostname === 'eu.posthog.com' || hostname === 'app.eu.posthog.com') {
-			return 'https://eu.i.posthog.com';
-		}
-		
-		if (hostname === 'app.posthog.com' || hostname === 'us.posthog.com' || hostname === 'posthog.com') {
-			return 'https://us.i.posthog.com';
-		}
-		
-		return posthogHost;
-	} catch (e) {
-		return 'https://us.i.posthog.com';
 	}
 }
 
