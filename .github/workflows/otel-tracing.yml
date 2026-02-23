@@ -19,9 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+    env:
+      OTEL_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
     steps:
       - name: Export OpenTelemetry Trace
-        if: secrets.OTEL_EXPORTER_OTLP_ENDPOINT != ''
+        if: env.OTEL_ENDPOINT != ''
         uses: corentinmusard/otel-cicd-action@0f9f16fceb53fd8c996042e28c642ec61f844876 # v4.0.0
         continue-on-error: true
         with:
