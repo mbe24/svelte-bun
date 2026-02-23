@@ -17,7 +17,7 @@ jobs:
       - name: Export Workflow Trace
         uses: corentinmusard/otel-cicd-action@e9b4a58325d7426a18fa57dd7526dee170a016af # v1.13.2
         with:
-          otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
-          otlpHeaders: ${{ secrets.OTLP_HEADERS }}
+          otlpEndpoint: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          otlpHeaders: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           runId: ${{ github.event.workflow_run.id }}
