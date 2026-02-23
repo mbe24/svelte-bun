@@ -1,0 +1,23 @@
+name: Export OpenTelemetry Trace for CI/CD
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - CD
+    types: [completed]
+
+jobs:
+  otel-export-trace:
+    name: OpenTelemetry Export Trace
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: Export Workflow Trace
+        uses: corentinmusard/otel-cicd-action@v1.13.2
+        with:
+          otlpEndpoint: ${{ secrets.DASH0_OTLP_ENDPOINT }}
+          otlpHeaders: ${{ secrets.DASH0_OTLP_HEADERS }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          runId: ${{ github.event.workflow_run.id }}
