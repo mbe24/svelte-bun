@@ -190,7 +190,7 @@ export const GET: RequestHandler = async ({ request, platform }) => {
 			padding: 10px;
 			background: rgba(0,0,0,0.05);
 			border-radius: 4px;
-			font-family: 'Courier New', monono;
+			font-family: 'Courier New', monospace;
 			font-size: 13px;
 		}
 		button {

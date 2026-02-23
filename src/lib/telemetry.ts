@@ -9,6 +9,7 @@
  */
 
 import { getEnvironmentName, getServiceName } from './environment';
+import { getSeverityNumber, getOTLPEndpoint } from './otlp-utils';
 
 interface OTLPAttribute {
 	key: string;
@@ -33,77 +34,6 @@ interface ResourceAttributes {
 	'session.id'?: string;
 	'service.name': string;
 	[key: string]: string | number | undefined;
-}
-
-/**
- * Convert severity level to OTLP severity number
- */
-function getSeverityNumber(level: 'info' | 'warn' | 'error' | 'debug'): number {
-	switch (level) {
-		case 'debug':
-			return 5; // DEBUG
-		case 'info':
-			return 9; // INFO
-		case 'warn':
-			return 13; // WARN
-		case 'error':
-			return 17; // ERROR
-		default:
-			return 9; // INFO
-	}
-}
-
-/**
- * Get OTLP ingestion endpoint
- * 
- * PostHog has two different API endpoints:
- * 1. Events API (Capture API) - For HTTP requests, page views, custom events
- *    - US: app.posthog.com or us.posthog.com
- *    - EU: eu.posthog.com
- * 
- * 2. OTLP Logs API - For logs, exceptions, telemetry
- *    - US: us.i.posthog.com
- *    - EU: eu.i.posthog.com
- * 
- * This function:
- * - Returns POSTHOG_OTLP_HOST if explicitly set
- * - Otherwise, automatically maps POSTHOG_HOST to the correct OTLP endpoint
- * - Falls back to US ingestion endpoint if mapping fails
- */
-function getOTLPEndpoint(posthogHost: string, posthogOtlpHost?: string): string {
-	// If OTLP host is explicitly set and not empty, use it
-	if (posthogOtlpHost && posthogOtlpHost.length > 0) {
-		return posthogOtlpHost;
-	}
-	
-	// Otherwise, derive from posthogHost
-	try {
-		const url = new URL(posthogHost);
-		const hostname = url.hostname.toLowerCase();
-		
-		// If already using ingestion endpoint, return as-is
-		if (hostname.includes('.i.posthog.com')) {
-			return posthogHost;
-		}
-		
-		// Map dashboard URLs to OTLP ingestion endpoints
-		if (hostname === 'eu.posthog.com' || hostname === 'app.eu.posthog.com') {
-			return 'https://eu.i.posthog.com';
-		}
-		
-		// Default to US OTLP ingestion endpoint
-		// Handles: app.posthog.com, us.posthog.com, posthog.com
-		if (hostname === 'app.posthog.com' || hostname === 'us.posthog.com' || hostname === 'posthog.com') {
-			return 'https://us.i.posthog.com';
-		}
-		
-		// For self-hosted instances, assume OTLP is at the same host
-		return posthogHost;
-	} catch (e) {
-		console.warn('[PostHog Telemetry] Failed to parse PostHog host URL:', posthogHost, e);
-		// Fallback to US ingestion endpoint
-		return 'https://us.i.posthog.com';
-	}
 }
 
 /**

@@ -57,7 +57,3 @@ export function getDb(env?: { DATABASE_URL?: string }) {
 		return drizzlePostgres(client, { schema });
 	}
 }
-
-// Export the db connection for backward compatibility
-// Note: This will be null in Cloudflare Workers - always use getDb(env) instead
-export const db = null;
