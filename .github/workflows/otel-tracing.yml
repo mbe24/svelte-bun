@@ -20,7 +20,7 @@ jobs:
     permissions:
       actions: read
     steps:
-      - name: Export Workflow Trace
+      - name: Export OpenTelemetry Trace
         if: secrets.OTEL_EXPORTER_OTLP_ENDPOINT != ''
         uses: corentinmusard/otel-cicd-action@0f9f16fceb53fd8c996042e28c642ec61f844876 # v4.0.0
         continue-on-error: true
