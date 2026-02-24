@@ -45,7 +45,7 @@ jobs:
       run: bun test src/
 
   e2e-tests:
-    name: E2E Tests
+    name: Run E2E Tests
     runs-on: ubuntu-latest
     needs: build-and-test
     permissions:
@@ -139,7 +139,7 @@ jobs:
       run: bun run test:e2e
 
   otel-export-trace:
-    name: OpenTelemetry Export Trace
+    name: Export OTLP Trace
     runs-on: ubuntu-latest
     if: always()
     needs: [build-and-test, e2e-tests]
@@ -148,7 +148,7 @@ jobs:
     env:
       OTEL_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
     steps:
-      - name: Export OpenTelemetry Trace
+      - name: Export OTLP Trace
         if: env.OTEL_ENDPOINT != ''
         uses: corentinmusard/otel-cicd-action@0f9f16fceb53fd8c996042e28c642ec61f844876 # v4.0.0
         continue-on-error: true

@@ -38,7 +38,7 @@ Runs on every triggered event. Steps:
 6. `bun run build` – production build.
 7. `bun test src/` – unit test suite.
 
-#### `e2e-tests` – End-to-End Tests
+#### `e2e-tests` – Run E2E Tests
 
 Runs after `build-and-test` succeeds (`needs: build-and-test`). Spins up a PostgreSQL 16-Alpine service container and runs the full Playwright test suite against a live database.
 
@@ -54,7 +54,7 @@ Steps:
 
 **Required secrets:** `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (all fall back to `postgres`/`postgres`/`sveltekit_db` if not set).
 
-#### `otel-export-trace` – OpenTelemetry Export Trace (inline)
+#### `otel-export-trace` – Export OTLP Trace (inline)
 
 Runs after both `build-and-test` and `e2e-tests` finish, regardless of their outcome (`if: always()`). Exports the current CI run as an OpenTelemetry trace using `corentinmusard/otel-cicd-action`. The export step is skipped unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set, and `continue-on-error: true` prevents a broken OTLP endpoint from affecting the overall workflow result.
 
@@ -89,7 +89,7 @@ Same build steps as production, but deploys to the Cloudflare Pages preview envi
 
 **Required secrets:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
 
-#### `otel-export-trace` – OpenTelemetry Export Trace (inline)
+#### `otel-export-trace` – Export OTLP Trace (inline)
 
 Runs after both `deploy-production` and `deploy-preview` finish, regardless of their outcome (`if: always()`). Because those two jobs each have a conditional `if` guard (only one runs per event), the OTel job waits for whichever actually executed and then exports the run trace. The export step is skipped unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
