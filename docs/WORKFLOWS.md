@@ -1,6 +1,6 @@
 # GitHub Actions Workflows
 
-This document describes every GitHub Actions workflow in this repository, explains the current behavior of each trigger, and analyses why the **Export OpenTelemetry Trace for CI/CD** workflow was previously limited to the default branch (`main`).
+This document describes every GitHub Actions workflow in this repository and explains why the **Export OpenTelemetry Trace for CI/CD** standalone workflow was previously limited to the default branch (`main`) and how it was resolved.
 
 ---
 
@@ -8,9 +8,8 @@ This document describes every GitHub Actions workflow in this repository, explai
 
 1. [CI – Continuous Integration](#ci--continuous-integration)
 2. [CD – Continuous Deployment](#cd--continuous-deployment)
-3. [Export OpenTelemetry Trace for CI/CD](#export-opentelemetry-trace-for-cicd)
-4. [Why the OTel workflow only ran on `main`](#why-the-otel-workflow-only-ran-on-main)
-5. [Proposed Changes and Tradeoffs](#proposed-changes-and-tradeoffs)
+3. [Why the standalone OTel workflow only ran on `main`](#why-the-standalone-otel-workflow-only-ran-on-main)
+4. [Proposed Changes and Tradeoffs](#proposed-changes-and-tradeoffs)
 
 ---
 
@@ -96,34 +95,9 @@ Runs after both `deploy-production` and `deploy-preview` finish, regardless of t
 
 ---
 
-## Export OpenTelemetry Trace for CI/CD
+## Why the standalone OTel workflow only ran on `main`
 
-**File:** `.github/workflows/otel-tracing.yml`
-
-### Triggers
-
-| Event | Condition |
-|---|---|
-| `workflow_run` | Fires when **CI** or **CD** completes (any result) |
-| `workflow_dispatch` | Manual trigger; requires a `runId` input |
-
-### Jobs
-
-#### `otel-export-trace` – OpenTelemetry Export Trace
-
-Exports a completed workflow run as an OpenTelemetry trace using `corentinmusard/otel-cicd-action`.
-
-- **Conditional execution:** the export step is skipped unless the `OTEL_EXPORTER_OTLP_ENDPOINT` secret is set.
-- **Error handling:** `continue-on-error: true` prevents a broken OTLP endpoint from blocking the overall pipeline status.
-- The `runId` is sourced from `github.event.workflow_run.id` (automatic) or the manual `inputs.runId` (dispatch).
-
-**Required secrets:** `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`.
-
----
-
-## Why the OTel workflow only ran on `main`
-
-There are two compounding reasons.
+The original standalone `otel-tracing.yml` (now removed) had two compounding limitations that prevented it from running on branches and PRs. OTel tracing has since been moved inline into the CI and CD workflows directly (see the `otel-export-trace` job in each workflow above).
 
 ### Reason 1 – `workflow_run` always executes from the default branch
 
@@ -131,11 +105,11 @@ GitHub's documentation states:
 
 > "A workflow triggered by the `workflow_run` event always runs on the default branch of the repository, regardless of what branch the triggering workflow ran on."
 
-This means that even when CI finishes on a feature-branch PR, the *code* of `otel-tracing.yml` that gets executed is always the version on `main`. Any in-progress changes to the OTel workflow file on a feature branch are invisible until they are merged.
+This meant that even when CI finished on a feature-branch PR, the *code* of `otel-tracing.yml` that got executed was always the version on `main`. Any in-progress changes to the OTel workflow file on a feature branch were invisible until merged.
 
 ### Reason 2 – CI did not run on direct feature-branch pushes
 
-The current CI trigger is:
+The CI trigger was (and still is):
 
 ```yaml
 on:
@@ -145,9 +119,9 @@ on:
     branches: [ main ]
 ```
 
-CI is therefore **not** triggered when a developer pushes directly to a feature branch without opening a pull request. Because `workflow_run` is downstream of CI, the OTel workflow is never triggered for those pushes either.
+CI was therefore **not** triggered when a developer pushed directly to a feature branch without opening a pull request. Because `workflow_run` is downstream of CI, the OTel workflow was never triggered for those pushes either.
 
-The combined effect:
+The combined effect of the old approach:
 
 | Event | CI triggered? | OTel triggered? |
 |---|---|---|
@@ -180,12 +154,12 @@ on:
 
 ---
 
-### Option B – Replace `workflow_run` with `workflow_call` (reusable workflow)
+### Option B – Use a reusable `workflow_call` instead of inline jobs
 
-Refactor `otel-tracing.yml` to expose a `workflow_call` trigger and call it as the last job in both CI and CD.
+Extract the OTel export logic into a dedicated reusable workflow file and call it as the last job in both CI and CD.
 
 ```yaml
-# otel-tracing.yml (excerpt)
+# otel-export.yml (new reusable file)
 on:
   workflow_call:
     secrets:
@@ -193,20 +167,14 @@ on:
         required: false
       OTEL_EXPORTER_OTLP_HEADERS:
         required: false
-  workflow_dispatch:
-    inputs:
-      runId:
-        description: Workflow Run ID to export
-        required: true
-        type: string
 ```
 
 ```yaml
-# ci.yml (excerpt – new final job)
+# ci.yml (excerpt – replaces inline job)
   otel-export:
     needs: [build-and-test, e2e-tests]
     if: always()
-    uses: ./.github/workflows/otel-tracing.yml
+    uses: ./.github/workflows/otel-export.yml
     secrets: inherit
 ```
 
@@ -217,9 +185,9 @@ on:
 
 ---
 
-### Option C – Add direct `push` / `pull_request` triggers to `otel-tracing.yml`
+### Option C – Add direct `push` / `pull_request` triggers to a standalone OTel workflow
 
-Add push and pull_request events alongside `workflow_run`.
+Keep a standalone OTel workflow file and add push and pull_request events alongside `workflow_run`.
 
 ```yaml
 on:
@@ -269,4 +237,4 @@ on:
 
 ---
 
-**Recommendation:** Option A is the simplest path, but triggers CI twice for every PR commit (once for the `push` and once for the `pull_request` event), wasting CI minutes. Option B (`workflow_call`) avoids duplication and is the most robust long-term solution. Option D (adding a `branches: ['**']` filter to the existing `workflow_run` trigger) is a low-effort way to make the intended scope explicit without any functional side-effects.
+**Resolution:** The inline job approach (effectively a simplified Option B) was chosen — OTel tracing is embedded directly in CI and CD as an `otel-export-trace` job with `if: always()`, which runs on every branch and PR without any of the `workflow_run` limitations.
