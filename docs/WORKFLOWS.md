@@ -55,6 +55,10 @@ Steps:
 
 **Required secrets:** `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (all fall back to `postgres`/`postgres`/`sveltekit_db` if not set).
 
+#### `otel-export-trace` – OpenTelemetry Export Trace (inline)
+
+Runs after both `build-and-test` and `e2e-tests` finish, regardless of their outcome (`if: always()`). Exports the current CI run as an OpenTelemetry trace using `corentinmusard/otel-cicd-action`. The export step is skipped unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set, and `continue-on-error: true` prevents a broken OTLP endpoint from affecting the overall workflow result.
+
 ---
 
 ## CD – Continuous Deployment
@@ -85,6 +89,10 @@ Runs **only** on `pull_request` events (`if: github.event_name == 'pull_request'
 Same build steps as production, but deploys to the Cloudflare Pages preview environment using the PR's head branch name as the channel.
 
 **Required secrets:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+
+#### `otel-export-trace` – OpenTelemetry Export Trace (inline)
+
+Runs after both `deploy-production` and `deploy-preview` finish, regardless of their outcome (`if: always()`). Because those two jobs each have a conditional `if` guard (only one runs per event), the OTel job waits for whichever actually executed and then exports the run trace. The export step is skipped unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
 ---
 

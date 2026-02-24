@@ -77,3 +77,23 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=svelte-bun --branch=${{ github.head_ref }}
+
+  otel-export-trace:
+    name: OpenTelemetry Export Trace
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [deploy-production, deploy-preview]
+    permissions:
+      actions: read
+    env:
+      OTEL_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+    steps:
+      - name: Export OpenTelemetry Trace
+        if: env.OTEL_ENDPOINT != ''
+        uses: corentinmusard/otel-cicd-action@0f9f16fceb53fd8c996042e28c642ec61f844876 # v4.0.0
+        continue-on-error: true
+        with:
+          otlpEndpoint: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          otlpHeaders: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
+          otelServiceName: svelte-bun
+          githubToken: ${{ secrets.GITHUB_TOKEN }}

@@ -137,3 +137,23 @@ jobs:
     
     - name: Run e2e tests
       run: bun run test:e2e
+
+  otel-export-trace:
+    name: OpenTelemetry Export Trace
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [build-and-test, e2e-tests]
+    permissions:
+      actions: read
+    env:
+      OTEL_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+    steps:
+      - name: Export OpenTelemetry Trace
+        if: env.OTEL_ENDPOINT != ''
+        uses: corentinmusard/otel-cicd-action@0f9f16fceb53fd8c996042e28c642ec61f844876 # v4.0.0
+        continue-on-error: true
+        with:
+          otlpEndpoint: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          otlpHeaders: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
+          otelServiceName: svelte-bun
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
