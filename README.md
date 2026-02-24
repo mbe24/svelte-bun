@@ -193,6 +193,8 @@ bun run db:generate
 bun run db:push
 ```
 
+> **Note:** `db:push` is recommended for local development only. For production deployments, use `db:migrate` or the CI/CD workflow — `db:push` does not track migration history and can cause data loss on column renames or drops. See [docs/MIGRATIONS.md](docs/MIGRATIONS.md) for a full explanation of all migration approaches and when to use each one.
+
 ### 5. Run the development server
 
 ```bash
@@ -209,10 +211,13 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 - `bun run build` - Build the application for production
 - `bun run preview` - Preview the production build
 - `bun run check` - Run TypeScript and Svelte checks
-- `bun run db:generate` - Generate Drizzle migrations
-- `bun run db:push` - Push schema changes to the database
+- `bun run db:generate` - Generate Drizzle migration files from schema changes
+- `bun run db:migrate` - Apply pending migrations to the database (production-safe, tracks history)
+- `bun run db:push` - Push schema changes directly to the database (development only, no history)
 - `bun run db:studio` - Open Drizzle Studio (database GUI)
 - `bun test` - Run unit tests
+
+See [docs/MIGRATIONS.md](docs/MIGRATIONS.md) for a detailed explanation of the difference between `db:migrate` and `db:push`, and guidance on which to use.
 
 ## Deployment
 
@@ -244,8 +249,8 @@ This application is optimized for deployment on Cloudflare Pages with automatic 
    
    Alternative methods:
    - **curl**: `curl -X POST https://your-app.pages.dev/api/admin/migrate`
-   - **Local**: Run `npm run db:push` with DATABASE_URL set
-   - See [docs/DEPLOY.md](docs/DEPLOY.md) for all migration methods
+   - **Local**: Run `npm run db:migrate` with DATABASE_URL set
+   - See [docs/MIGRATIONS.md](docs/MIGRATIONS.md) for all migration approaches, why automatic migration isn't used, and Drizzle ORM's recommended production workflow
 
 ⚠️ **Important**: 
 - Without DATABASE_URL configured, user registration and login will fail with a database configuration error.
