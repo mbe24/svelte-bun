@@ -10,6 +10,7 @@ This document describes every GitHub Actions workflow in this repository and exp
 2. [CD – Continuous Deployment](#cd--continuous-deployment)
 3. [Why the standalone OTel workflow only ran on `main`](#why-the-standalone-otel-workflow-only-ran-on-main)
 4. [Proposed Changes and Tradeoffs](#proposed-changes-and-tradeoffs)
+5. [Traces vs Logs](#traces-vs-logs)
 
 ---
 
@@ -238,3 +239,58 @@ on:
 ---
 
 **Resolution:** The inline job approach (effectively a simplified Option B) was chosen — OTel tracing is embedded directly in CI and CD as an `otel-export-trace` job with `if: always()`, which runs on every branch and PR without any of the `workflow_run` limitations.
+
+---
+
+## Traces vs Logs
+
+### What is the difference?
+
+**Traces** represent the execution flow of a process as a tree of **spans**. Each span records:
+
+- A name (e.g. "Set up job", "Run actions/checkout@v4")
+- Start and end timestamps (duration)
+- A parent–child relationship (`parentSpanId`) so you can visualise the full call tree
+- Key–value attributes describing what happened (status, conclusion, step number, etc.)
+
+Traces do *not* only contain times — as visible in the OTLP export from `otel-cicd-action`, each span also carries attributes like `github.job.step.status`, `github.job.step.conclusion`, and `error`.
+
+**Logs** are discrete, timestamped text messages (e.g. "Build failed: missing dependency"). In OTLP format they appear in `logRecords` inside `scopeLogs` / `instrumentationLibraryLogs`, not in `instrumentationLibrarySpans`.
+
+In this repository:
+
+| Signal | Emitter | Backend field |
+|---|---|---|
+| Traces | `otel-cicd-action` (CI/CD pipeline structure) | `instrumentationLibrarySpans` |
+| Logs | PostHog OTLP integration (`hooks.server.ts`) | `logRecords` |
+
+### Trace–log correlation
+
+Correlating traces and logs is a core observability best practice. The standard mechanism is injecting the active `traceId` and `spanId` into every log record emitted during a span's execution. Observability tools (Grafana, Honeycomb, Jaeger, etc.) can then pivot directly from a log line to the trace that produced it, and vice versa.
+
+In OTLP terms a correlated log record looks like:
+
+```json
+{
+  "traceId": "e6acc63cccce3533bea761294d841e7f",
+  "spanId":  "3f82c51aa032a236",
+  "body":    "Database query took 450ms"
+}
+```
+
+### Best practices
+
+1. **Propagate context automatically** — use the OpenTelemetry SDK's built-in context propagation so `traceId`/`spanId` are injected into log records without manual work.
+2. **Use structured logging** — emit logs as JSON (or OTLP `logRecords`) rather than plain text so the `traceId` field is machine-readable and indexable.
+3. **Send both signals to the same backend** — use a single OTLP endpoint (e.g. Grafana Tempo + Loki, or Honeycomb) so the UI can correlate them natively without extra configuration.
+4. **Set `service.name` consistently** — both trace resource attributes and log resource attributes must use the same `service.name` value (e.g. `svelte-bun/main`) so the backend can group signals by service and branch.
+5. **Mind sampling** — traces are often sampled (e.g. 10% of requests); logs tied to sampled-out traces lose their correlation value. Head-based sampling (decided at the root span) keeps traces and their associated logs consistent.
+
+### Application to this repository
+
+The `otel-export-trace` jobs set `otelServiceName: svelte-bun/${{ github.head_ref || github.ref_name }}`. To enable full trace–log correlation, the PostHog OTLP log integration in `hooks.server.ts` should:
+
+1. Use the same `service.name` value in its resource attributes.
+2. Inject the active OpenTelemetry `traceId` and `spanId` into each `logRecord` it emits.
+
+This allows Grafana (or any OTLP-compatible backend) to link a slow database log directly to the CI/CD pipeline span that triggered the request.
