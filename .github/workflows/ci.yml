@@ -155,5 +155,5 @@ jobs:
         with:
           otlpEndpoint: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
           otlpHeaders: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
-          otelServiceName: svelte-bun
+          otelServiceName: svelte-bun/${{ github.ref_name }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
