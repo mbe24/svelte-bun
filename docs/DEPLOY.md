@@ -303,6 +303,8 @@ For production applications, it's **highly recommended** to use separate databas
 
 **Critical:** After creating your Neon database(s), you must run migrations to create the required tables.
 
+> **In-depth guide:** For a full explanation of why a manual migration endpoint is used, why migrations don't run automatically, and which approach is best for your deployment setup, see [docs/MIGRATIONS.md](MIGRATIONS.md).
+
 #### Method 1: Using the Web UI (Easiest! ⭐ RECOMMENDED)
 
 This is the **easiest method** - no command line or curl needed!
