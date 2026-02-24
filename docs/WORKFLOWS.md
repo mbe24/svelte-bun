@@ -22,10 +22,8 @@ This document describes every GitHub Actions workflow in this repository, explai
 
 | Event | Condition |
 |---|---|
-| `push` | Any branch (`**`) |
+| `push` | `main` branch only |
 | `pull_request` | PRs targeting `main` |
-
-> **Note:** Before the change described in this document the `push` trigger was scoped to `branches: [main]` only, meaning direct pushes to feature branches did *not* run CI.
 
 ### Jobs
 
@@ -129,7 +127,7 @@ This means that even when CI finishes on a feature-branch PR, the *code* of `ote
 
 ### Reason 2 – CI did not run on direct feature-branch pushes
 
-Before the fix in this PR the CI trigger was:
+The current CI trigger is:
 
 ```yaml
 on:
@@ -139,7 +137,7 @@ on:
     branches: [ main ]
 ```
 
-CI was therefore **not** triggered when a developer pushed directly to a feature branch without opening a pull request. Because `workflow_run` is downstream of CI, the OTel workflow was never triggered for those pushes either.
+CI is therefore **not** triggered when a developer pushes directly to a feature branch without opening a pull request. Because `workflow_run` is downstream of CI, the OTel workflow is never triggered for those pushes either.
 
 The combined effect:
 
@@ -153,7 +151,7 @@ The combined effect:
 
 ## Proposed Changes and Tradeoffs
 
-### Option A – Expand the CI `push` trigger to all branches *(implemented)*
+### Option A – Expand the CI `push` trigger to all branches
 
 Change the CI `push` trigger from `branches: [main]` to `branches: ['**']`.  
 No changes are needed in `otel-tracing.yml`; the `workflow_run` chain picks up the new CI runs automatically.
@@ -169,8 +167,8 @@ on:
 
 | | |
 |---|---|
-| **Pros** | Minimal change. Developers get build/test feedback on every push. OTel traces are exported for feature-branch work without touching the OTel workflow. |
-| **Cons** | More CI minutes consumed (each push to any branch runs the full suite including E2E). The `otel-tracing.yml` code running for feature-branch CI runs still comes from `main`, so in-flight edits to the OTel file are not tested until merged. |
+| **Pros** | Developers get build/test feedback on every push. OTel traces are exported for feature-branch work without touching the OTel workflow. |
+| **Cons** | CI runs twice for PRs: once for the `push` to the head branch and once for the `pull_request` event. More CI minutes consumed (each push to any branch runs the full suite including E2E). The `otel-tracing.yml` code running for feature-branch CI runs still comes from `main`, so in-flight edits to the OTel file are not tested until merged. |
 
 ---
 
@@ -263,4 +261,4 @@ on:
 
 ---
 
-**Recommendation:** Option A (implemented in this PR) is the lowest-risk path. It keeps the proven `workflow_run` chain intact and simply extends CI feedback — and therefore OTel traces — to every branch with minimal blast radius.
+**Recommendation:** Option A is the simplest path, but triggers CI twice for every PR commit (once for the `push` and once for the `pull_request` event), wasting CI minutes. Option B (`workflow_call`) avoids duplication and is the most robust long-term solution. Option D (adding a `branches: ['**']` filter to the existing `workflow_run` trigger) is a low-effort way to make the intended scope explicit without any functional side-effects.
