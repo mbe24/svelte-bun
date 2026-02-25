@@ -234,6 +234,11 @@ export function getTracer() {
 		console.warn('[Tracing] Tracer not initialized, initializing with defaults');
 		initTracer();
 	}
+	// Use the current module tracer provider directly so tests that call
+	// shutdown/init between cases don't rely on the global singleton provider.
+	if (tracerProvider) {
+		return tracerProvider.getTracer(TRACER_NAME);
+	}
 	return trace.getTracer(TRACER_NAME);
 }
 
